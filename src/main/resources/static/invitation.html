@@ -353,12 +353,12 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
      resolves. -->
 <div id="invite-loading" class="screen">
   <span class="spinner" aria-hidden="true"></span>
-  <p>Открываем ваше приглашение…</p>
+  <p data-i18n="loading-text">Открываем ваше приглашение…</p>
 </div>
 
 <div id="invite-error-state" class="screen" hidden>
-  <h1>Ссылка недействительна</h1>
-  <p>Проверьте ссылку, которую вам прислали, или свяжитесь с молодожёнами.</p>
+  <h1 data-i18n="error-title">Ссылка недействительна</h1>
+  <p data-i18n="error-body">Проверьте ссылку, которую вам прислали, или свяжитесь с молодожёнами.</p>
 </div>
 
 <!-- ── векторный орнамент-медальон (икат/сюзане), используется повсюду ── -->
@@ -385,22 +385,22 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
     <i class="orn s-left" style="top:0;left:0"></i>
 
     <div class="wrap">
-      <p class="greeting">Свадьба</p>
-      <h1>Бобиржон<span class="amp">и</span>Дилноза</h1>
+      <p class="greeting" data-i18n="hero-eyebrow">Свадьба</p>
+      <h1 data-i18n="hero-names">Бобиржон<span class="amp">и</span>Дилноза</h1>
       <svg class="rule" viewBox="0 0 118 14" aria-hidden="true"><use href="#flourish"/></svg>
-      <p class="when">2 октября 2026, пятница<br><b>18:00</b></p>
-      <p class="place">Ташкент, ресторан Santini</p>
+      <p class="when" data-i18n="hero-when">2 октября 2026, пятница<br><b>18:00</b></p>
+      <p class="place" data-i18n="hero-place">Ташкент, ресторан Santini</p>
     </div>
   </header>
 
   <!-- ══════════ 1.5 ВАШЕ МЕСТО ══════════ -->
   <section class="seat">
     <div class="wrap center">
-      <p class="eyebrow">Личное приглашение для</p>
+      <p class="eyebrow" data-i18n="seat-eyebrow">Личное приглашение для</p>
       <h2 class="script" id="seat-name">—</h2>
       <p class="seat-members" id="seat-members" hidden></p>
       <div class="cd cd-single" id="seat-table" hidden>
-        <div class="cd-cell"><span class="cd-num" id="seat-table-num">—</span><span class="cd-lab">ваш стол</span></div>
+        <div class="cd-cell"><span class="cd-num" id="seat-table-num">—</span><span class="cd-lab" data-i18n="seat-table-label">ваш стол</span></div>
       </div>
     </div>
   </section>
@@ -414,7 +414,7 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
         <div class="cd-cell"><span class="cd-num" id="cd-m">—</span><span class="cd-lab" id="cd-ml">минут</span></div>
         <div class="cd-cell"><span class="cd-num" id="cd-s">—</span><span class="cd-lab" id="cd-sl">секунд</span></div>
       </div>
-      <p class="cd-today" id="cd-today" hidden>Сегодня! Ждём вас</p>
+      <p class="cd-today" id="cd-today" data-i18n="cd-today" hidden>Сегодня! Ждём вас</p>
     </div>
   </section>
 
@@ -423,9 +423,9 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
     <i class="orn s-right" style="top:0;right:0"></i>
     <div class="wrap center">
       <h2 class="script" data-greeting>Дорогие родные и друзья!</h2>
-      <p>2 октября мы наконец-то женимся и очень хотим, чтобы вы были рядом. Без вас этот вечер будет совсем не тот.</p>
-      <p>Пусть этот вечер запомнится не тостами и церемониями, а тем, как хорошо нам было всем вместе.</p>
-      <p class="sign">Обнимаем, Бобиржон и Дилноза</p>
+      <p data-i18n="invite-p1">2 октября мы наконец-то женимся и очень хотим, чтобы вы были рядом. Без вас этот вечер будет совсем не тот.</p>
+      <p data-i18n="invite-p2">Пусть этот вечер запомнится не тостами и церемониями, а тем, как хорошо нам было всем вместе.</p>
+      <p class="sign" data-i18n="invite-sign">Обнимаем, Бобиржон и Дилноза</p>
     </div>
   </section>
 
@@ -433,9 +433,9 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
   <section class="about">
     <i class="orn s-llow" style="top:0;left:0"></i>
     <div class="wrap center">
-      <h2 class="script">Немного о нас</h2>
-      <p class="lede">Пока фотограф не снял свадьбу — вот несколько кадров из обычной жизни.</p>
-      <div class="gallery" id="gallery"><!-- заполняется из константы GALLERY --></div>
+      <h2 class="script" data-i18n="about-title">Немного о нас</h2>
+      <p class="lede" data-i18n="about-lede">Пока фотограф не снял свадьбу — вот несколько кадров из обычной жизни.</p>
+      <div class="gallery" id="gallery"><!-- заполняется из константы GALLERY, подписи — из i18n.js --></div>
     </div>
   </section>
 
@@ -444,36 +444,36 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
     <i class="orn s-left flip-x" style="top:0;right:0"></i>
     <div class="wrap">
       <div class="center">
-        <h2 class="script">Как пройдёт день</h2>
-        <p class="note">Время примерное, точное скажем ближе к дате.</p>
+        <h2 class="script" data-i18n="day-title">Как пройдёт день</h2>
+        <p class="note" data-i18n="day-note">Время примерное, точное скажем ближе к дате.</p>
       </div>
       <ol class="tl">
         <li>
           <time datetime="18:00">18:00</time>
           <div>
-            <h3>Собираемся</h3>
-            <p>Встречаем гостей, наливаем чай, фотографируемся. Места пронумерованы, схема будет у входа в зал.</p>
+            <h3 data-i18n="sched1-title">Собираемся</h3>
+            <p data-i18n="sched1-desc">Встречаем гостей, наливаем чай, фотографируемся. Места пронумерованы, схема будет у входа в зал.</p>
           </div>
         </li>
         <li>
           <time datetime="19:00">19:00</time>
           <div>
-            <h3>Наш выход</h3>
-            <p>Самый волнительный момент, просим быть в зале.</p>
+            <h3 data-i18n="sched2-title">Наш выход</h3>
+            <p data-i18n="sched2-desc">Самый волнительный момент, просим быть в зале.</p>
           </div>
         </li>
         <li>
           <time datetime="20:00">20:00</time>
           <div>
-            <h3>Танцы</h3>
-            <p>Диджей, живая музыка и национальные танцы. Обувь выбирайте с умом.</p>
+            <h3 data-i18n="sched3-title">Танцы</h3>
+            <p data-i18n="sched3-desc">Диджей, живая музыка и национальные танцы. Обувь выбирайте с умом.</p>
           </div>
         </li>
         <li>
           <time datetime="22:00">22:00</time>
           <div>
-            <h3>Расходимся</h3>
-            <p>Обнимаемся на прощание.</p>
+            <h3 data-i18n="sched4-title">Расходимся</h3>
+            <p data-i18n="sched4-desc">Обнимаемся на прощание.</p>
           </div>
         </li>
       </ol>
@@ -484,18 +484,18 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
   <section class="where">
     <i class="orn s-right flip-x" style="top:0;left:0"></i>
     <div class="wrap center">
-      <h2 class="script">Где</h2>
-      <p class="venue-name">Ресторан Santini</p>
-      <p class="lede">Большой зал с летней террасой и танцполом в Юнусабадском районе. Парковка есть, места хватит всем.</p>
+      <h2 class="script" data-i18n="where-title">Где</h2>
+      <p class="venue-name" data-i18n="venue-name">Ресторан Santini</p>
+      <p class="lede" data-i18n="venue-lede">Большой зал с летней террасой и танцполом в Юнусабадском районе. Парковка есть, места хватит всем.</p>
       <ul class="facts">
-        <li><span class="k">Адрес</span><span class="v">Ташкент, Юнусабадский район,<br>ул. Чинабад, 61/1</span></li>
-        <li><span class="k">Дата</span><span class="v">2 октября 2026, пятница</span></li>
-        <li><span class="k">Время</span><span class="v">18:00</span></li>
-        <li><span class="k">Парковка</span><span class="v">бесплатная, на территории ресторана</span></li>
+        <li><span class="k" data-i18n="fact-address-label">Адрес</span><span class="v" data-i18n="fact-address-value">Ташкент, Юнусабадский район,<br>ул. Чинабад, 61/1</span></li>
+        <li><span class="k" data-i18n="fact-date-label">Дата</span><span class="v" data-i18n="fact-date-value">2 октября 2026, пятница</span></li>
+        <li><span class="k" data-i18n="fact-time-label">Время</span><span class="v" data-i18n="fact-time-value">18:00</span></li>
+        <li><span class="k" data-i18n="fact-parking-label">Парковка</span><span class="v" data-i18n="fact-parking-value">бесплатная, на территории ресторана</span></li>
       </ul>
       <div class="maps">
-        <a class="btn" id="map-ya" href="#" target="_blank" rel="noopener noreferrer">Яндекс.Карты</a>
-        <a class="btn" id="map-gg" href="#" target="_blank" rel="noopener noreferrer">Google Карты</a>
+        <a class="btn" id="map-ya" href="#" target="_blank" rel="noopener noreferrer" data-i18n="map-yandex-label">Яндекс.Карты</a>
+        <a class="btn" id="map-gg" href="#" target="_blank" rel="noopener noreferrer" data-i18n="map-google-label">Google Карты</a>
       </div>
     </div>
   </section>
@@ -504,18 +504,18 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
   <section class="media">
     <i class="orn s-llow flip-x" style="top:0;right:0"></i>
     <div class="wrap center">
-      <h2 class="script">Фото и видео</h2>
-      <p class="lede">Мы хотим увидеть свою свадьбу вашими глазами.</p>
+      <h2 class="script" data-i18n="media-title">Фото и видео</h2>
+      <p class="lede" data-i18n="media-lede">Мы хотим увидеть свою свадьбу вашими глазами.</p>
       <div id="upload-error" class="upload-banner" hidden></div>
       <div class="cards">
         <div class="card">
           <svg class="ic" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
             <path d="M3 8.5h3l1.5-2h9L18 8.5h3v11H3z"/><circle cx="12" cy="13.5" r="3.6"/>
           </svg>
-          <h3>Фото</h3>
+          <h3 data-i18n="photo-title">Фото</h3>
           <p class="upload-remaining" id="photos-remaining"></p>
           <label class="btn file-btn" id="photo-btn">
-            Загрузить фото
+            <span data-i18n="upload-photo-btn">Загрузить фото</span>
             <input type="file" id="photo-input" accept="image/*">
           </label>
           <div class="gallery-grid" id="photo-gallery"></div>
@@ -524,10 +524,10 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
           <svg class="ic" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
             <rect x="3" y="6.5" width="12.5" height="11" rx="1"/><path d="M15.5 11l5.5-3v8l-5.5-3z"/>
           </svg>
-          <h3>Видео</h3>
+          <h3 data-i18n="video-title">Видео</h3>
           <p class="upload-remaining" id="videos-remaining"></p>
           <label class="btn file-btn" id="video-btn">
-            Загрузить видео
+            <span data-i18n="upload-video-btn">Загрузить видео</span>
             <input type="file" id="video-input" accept="video/*">
           </label>
           <div class="gallery-grid" id="video-gallery"></div>
@@ -539,27 +539,27 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
   <!-- ══════════ 8. КОНТАКТЫ ══════════ -->
   <section class="contacts">
     <div class="wrap center">
-      <h2 class="script">Контакты</h2>
-      <p class="lede">Если что-то непонятно — просто позвоните.</p>
+      <h2 class="script" data-i18n="contacts-title">Контакты</h2>
+      <p class="lede" data-i18n="contacts-lede">Если что-то непонятно — просто позвоните.</p>
       <div class="people">
         <div class="person">
-          <p class="role">Жених</p>
-          <p class="nm">Бобиржон</p>
+          <p class="role" data-i18n="role-groom">Жених</p>
+          <p class="nm" data-i18n="name-groom">Бобиржон</p>
           <a href="tel:+998900000000">+998 90 000-00-00</a>
         </div>
         <div class="person">
-          <p class="role">Невеста</p>
-          <p class="nm">Дилноза</p>
+          <p class="role" data-i18n="role-bride">Невеста</p>
+          <p class="nm" data-i18n="name-bride">Дилноза</p>
           <a href="tel:+998900000000">+998 90 000-00-00</a>
         </div>
         <div class="person">
-          <p class="role">Координатор</p>
+          <p class="role" data-i18n="role-coordinator">Координатор</p>
           <!-- впишите имя координатора -->
-          <p class="nm">Имя координатора</p>
+          <p class="nm" data-i18n="name-coordinator">Имя координатора</p>
           <a href="tel:+998900000000">+998 90 000-00-00</a>
         </div>
         <div class="person">
-          <p class="role">Ресторан</p>
+          <p class="role" data-i18n="role-restaurant">Ресторан</p>
           <p class="nm">Santini</p>
           <a href="tel:+998909360005">+998 90 936-00-05</a>
         </div>
@@ -572,9 +572,9 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
     <i class="orn s-corner" style="bottom:0;left:0"></i>
     <i class="orn s-corner flip-x" style="bottom:0;right:0"></i>
     <div class="wrap">
-      <p class="nm">Бобиржон и Дилноза</p>
+      <p class="nm" data-i18n="footer-names">Бобиржон и Дилноза</p>
       <svg class="rule" viewBox="0 0 118 14" aria-hidden="true"><use href="#flourish"/></svg>
-      <p class="meta">2 октября 2026, Ташкент</p>
+      <p class="meta" data-i18n="footer-meta">2 октября 2026, Ташкент</p>
     </div>
   </footer>
 </main>

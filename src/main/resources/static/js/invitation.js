@@ -2,8 +2,18 @@
 // the credential (see API.md, section 7). Reads it from the query string
 // or the /i/{slug} path — see this project's README.md for the details,
 // and what to set app.invitation.base-url to on the backend to match.
+//
+// Supports Russian, Uzbek, and English (see i18n.js) — driven by the
+// guest's own `language` field (set by the admin), with the browser's
+// language as a best guess for the loading/invalid-link screens shown
+// before that's known.
 import * as api from './api.js';
 import { showError, clearBanner, escapeHtml } from './ui.js';
+import {
+  normalizeLanguage, applyStaticTranslations, countdownWord,
+  galleryCaptionsFor, mapQueryFor, defaultGreetingFor, seatMembersText,
+  remainingMediaText, documentTitleFor,
+} from './i18n.js';
 
 const pathMatch = location.pathname.match(/^\/i\/([^/]+)\/?$/);
 const slug = new URLSearchParams(location.search).get('slug')
@@ -16,16 +26,16 @@ const uploadError = document.getElementById('upload-error');
 
 // -----------------------------------------------------------------------
 // Fixed event details — same for every guest, so they don't come from the
-// API. Keep this in sync with the copy in the page's markup if the venue
-// or date ever changes.
+// API. Keep this in sync with the copy in the page's markup (and i18n.js)
+// if the venue or date ever changes.
 // -----------------------------------------------------------------------
 const WEDDING_DATE = new Date('2026-10-02T18:00:00+05:00');
-const MAP_QUERY = 'Ресторан Santini, Ташкент, улица Чинабад, 61/1';
-const GALLERY = [
-  { src: '', caption: 'Первые кольца были из скрепок' },
-  { src: '', caption: 'Бегаем вместе по утрам' },
-  { src: '', caption: 'И гуляем, когда есть время' },
-];
+const GALLERY_IMAGES = ['', '', '']; // fill in with photo paths when available
+
+// Best guess until the guest's own `language` comes back from the API —
+// used only for the loading/invalid-link screens, since nothing else is
+// visible until then (#invite-content stays hidden).
+let currentLang = normalizeLanguage(navigator.language);
 
 async function init() {
   if (!slug) {
@@ -34,6 +44,7 @@ async function init() {
   }
   try {
     const invitation = await api.getPublicInvitation(slug);
+    applyLanguage(invitation.language);
     renderInvitation(invitation);
     loadingEl.hidden = true;
     contentEl.hidden = false;
@@ -48,17 +59,31 @@ function showInvalidLink() {
   errorStateEl.hidden = false;
 }
 
-function renderInvitation(invitation) {
-  document.title = `${invitation.displayName} — приглашение на свадьбу Бобиржона и Дилнозы`;
+/** Re-applies every translated string for `lang`, including the pieces i18n.js can't drive via plain data-i18n (captions, map links). */
+function applyLanguage(lang) {
+  currentLang = normalizeLanguage(lang);
+  applyStaticTranslations(currentLang);
 
-  const greetingText = invitation.greetingMessage || 'Дорогие гости!';
+  document.querySelectorAll('#gallery figcaption').forEach((el, i) => {
+    el.textContent = galleryCaptionsFor(currentLang)[i] || '';
+  });
+
+  const query = mapQueryFor(currentLang);
+  document.getElementById('map-ya').href = 'https://yandex.uz/maps/?text=' + encodeURIComponent(query);
+  document.getElementById('map-gg').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query);
+}
+
+function renderInvitation(invitation) {
+  document.title = documentTitleFor(currentLang, invitation.displayName);
+
+  const greetingText = invitation.greetingMessage || defaultGreetingFor(currentLang);
   document.querySelectorAll('[data-greeting]').forEach((el) => { el.textContent = greetingText; });
 
   document.getElementById('seat-name').textContent = invitation.displayName;
 
   const membersEl = document.getElementById('seat-members');
   if (invitation.isGroup && invitation.groupMembers && invitation.groupMembers.length > 0) {
-    membersEl.textContent = `Вместе с вами: ${invitation.groupMembers.join(', ')}`;
+    membersEl.textContent = seatMembersText(currentLang, invitation.groupMembers.join(', '));
     membersEl.hidden = false;
   }
 
@@ -68,15 +93,15 @@ function renderInvitation(invitation) {
     tableEl.hidden = false;
   }
 
-  updateRemaining('photos-remaining', invitation.photosRemaining, 'фото');
-  updateRemaining('videos-remaining', invitation.videosRemaining, 'видео');
+  updateRemaining('photos-remaining', 'photo', invitation.photosRemaining);
+  updateRemaining('videos-remaining', 'video', invitation.videosRemaining);
   toggleFileInput('photo-btn', 'photo-input', invitation.photosRemaining);
   toggleFileInput('video-btn', 'video-input', invitation.videosRemaining);
 }
 
-function updateRemaining(elementId, remaining, label) {
+function updateRemaining(elementId, kind, remaining) {
   const el = document.getElementById(elementId);
-  el.textContent = remaining > 0 ? `Осталось ${remaining} ${label}` : `Лимит ${label} исчерпан`;
+  el.textContent = remainingMediaText(currentLang, kind, remaining);
   el.classList.toggle('at-cap', remaining <= 0);
 }
 
@@ -110,13 +135,13 @@ function renderUploadedMedia(items) {
     tile.className = 'gallery-tile';
     tile.innerHTML = `
       <span class="file-label">${escapeHtml(item.originalFilename)}</span>
-      <button type="button" aria-label="Удалить">&times;</button>`;
+      <button type="button" aria-label="Delete">&times;</button>`;
     tile.querySelector('button').addEventListener('click', async () => {
       try {
         await api.deletePublicMedia(slug, item.id);
         const invitation = await api.getPublicInvitation(slug);
-        updateRemaining('photos-remaining', invitation.photosRemaining, 'фото');
-        updateRemaining('videos-remaining', invitation.videosRemaining, 'видео');
+        updateRemaining('photos-remaining', 'photo', invitation.photosRemaining);
+        updateRemaining('videos-remaining', 'video', invitation.videosRemaining);
         toggleFileInput('photo-btn', 'photo-input', invitation.photosRemaining);
         toggleFileInput('video-btn', 'video-input', invitation.videosRemaining);
         loadGallery();
@@ -135,7 +160,7 @@ document.getElementById('photo-input').addEventListener('change', async (e) => {
   try {
     await api.uploadPublicMedia(slug, 'PHOTO', file);
     const invitation = await api.getPublicInvitation(slug);
-    updateRemaining('photos-remaining', invitation.photosRemaining, 'фото');
+    updateRemaining('photos-remaining', 'photo', invitation.photosRemaining);
     toggleFileInput('photo-btn', 'photo-input', invitation.photosRemaining);
     loadGallery();
   } catch (err) {
@@ -151,7 +176,7 @@ document.getElementById('video-input').addEventListener('change', async (e) => {
   try {
     await api.uploadPublicMedia(slug, 'VIDEO', file);
     const invitation = await api.getPublicInvitation(slug);
-    updateRemaining('videos-remaining', invitation.videosRemaining, 'видео');
+    updateRemaining('videos-remaining', 'video', invitation.videosRemaining);
     toggleFileInput('video-btn', 'video-input', invitation.videosRemaining);
     loadGallery();
   } catch (err) {
@@ -161,33 +186,27 @@ document.getElementById('video-input').addEventListener('change', async (e) => {
 });
 
 // -----------------------------------------------------------------------
-// Static content — doesn't depend on the guest, so it doesn't wait on init()
+// Static content — doesn't depend on the guest, so it doesn't wait on
+// init(). Gallery frames/images are language-independent; their captions
+// are filled in (and re-filled on every applyLanguage()) separately.
 // -----------------------------------------------------------------------
 
 function buildAboutGallery() {
   const box = document.getElementById('gallery');
-  GALLERY.forEach((item) => {
+  GALLERY_IMAGES.forEach((src) => {
     const fig = document.createElement('figure');
     const frame = document.createElement('div');
-    frame.className = 'frame' + (item.src ? '' : ' empty');
-    if (item.src) {
+    frame.className = 'frame' + (src ? '' : ' empty');
+    if (src) {
       const img = document.createElement('img');
-      img.src = item.src;
-      img.alt = item.caption;
+      img.src = src;
       img.loading = 'lazy';
       img.onerror = () => { frame.classList.add('empty'); img.remove(); };
       frame.appendChild(img);
     }
-    const cap = document.createElement('figcaption');
-    cap.textContent = item.caption;
-    fig.append(frame, cap);
+    fig.append(frame, document.createElement('figcaption'));
     box.appendChild(fig);
   });
-}
-
-function buildMapLinks() {
-  document.getElementById('map-ya').href = 'https://yandex.uz/maps/?text=' + encodeURIComponent(MAP_QUERY);
-  document.getElementById('map-gg').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(MAP_QUERY);
 }
 
 function startCountdown() {
@@ -199,13 +218,6 @@ function startCountdown() {
     m: document.getElementById('cd-m'), ml: document.getElementById('cd-ml'),
     s: document.getElementById('cd-s'), sl: document.getElementById('cd-sl'),
   };
-
-  function plural(n, forms) {
-    const a = n % 10, b = n % 100;
-    if (a === 1 && b !== 11) return forms[0];
-    if (a >= 2 && a <= 4 && (b < 10 || b >= 20)) return forms[1];
-    return forms[2];
-  }
 
   let timer = null;
 
@@ -223,10 +235,13 @@ function startCountdown() {
     const m = Math.floor(s % 3600 / 60);
     const sec = s % 60;
 
-    el.d.textContent = d;   el.dl.textContent = plural(d, ['день', 'дня', 'дней']);
-    el.h.textContent = h;   el.hl.textContent = plural(h, ['час', 'часа', 'часов']);
-    el.m.textContent = m;   el.ml.textContent = plural(m, ['минута', 'минуты', 'минут']);
-    el.s.textContent = sec; el.sl.textContent = plural(sec, ['секунда', 'секунды', 'секунд']);
+    // currentLang is read fresh each tick, so a language resolved after
+    // this timer started (see applyLanguage()) still takes effect within
+    // a second, without needing to restart the interval.
+    el.d.textContent = d;   el.dl.textContent = countdownWord(currentLang, 'day', d);
+    el.h.textContent = h;   el.hl.textContent = countdownWord(currentLang, 'hour', h);
+    el.m.textContent = m;   el.ml.textContent = countdownWord(currentLang, 'minute', m);
+    el.s.textContent = sec; el.sl.textContent = countdownWord(currentLang, 'second', sec);
   }
 
   tick();
@@ -234,6 +249,6 @@ function startCountdown() {
 }
 
 buildAboutGallery();
-buildMapLinks();
+applyLanguage(currentLang);
 startCountdown();
 init();

@@ -170,7 +170,7 @@ curl http://localhost:8080/api/guests?page=0&size=20 \
 | `partySize` | no (default `1`) | Min `1`; forced to `1` server-side if `isGroup` is `false` |
 | `groupMembers` | no | Individual names, display only |
 | `greetingMessage` | no | Custom text on the landing page |
-| `language` | no (default `"en"`) | |
+| `language` | no (default `"en"`) | `"en"`, `"ru"`, or `"uz"` — selects which language `invitation.html` renders in for this guest (see its README.md). Any other value falls back to Russian client-side; not validated server-side. |
 
 **Response `201`:** same shape as a `GuestResponse` above. `landingSlug`/`invitationUrl` are generated automatically — the landing page exists as soon as the guest is created, no separate "generate" step.
 
@@ -602,6 +602,8 @@ curl http://localhost:8080/api/public/invitations/a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3
 ```
 
 `tableLabel` is the side-qualified form guests actually recognize — bride tables are `"{n}D"`, groom tables `"{n}B"`, the head table is `"Head Table"` (see the seating section below). Both `tableNumber` and `tableLabel` are `null` until the guest has a table assigned.
+
+`language` drives which of the three languages (`en`/`ru`/`uz`) `invitation.html` actually renders in for this guest — see this project's frontend README.md.
 
 First call marks `first_viewed_at` on the guest record server-side (not returned in this response, but visible to the admin via `GET /api/guests/{id}`).
 

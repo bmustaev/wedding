@@ -1,18 +1,23 @@
 /* =====================================================================
    hall.html — the wedding-hall seating map. Head table centered at top,
    bride tables in a left column, groom tables in a right column, and a
-   rail of unassigned guests to drag from, next to the tables. Docks to
-   the bottom of the screen instead on narrow viewports (see the
-   max-width:900px block), where there's no room for a fourth column.
-   Uses the native HTML5 drag-and-drop API — no library.
+   docked bottom tray of unassigned guests to drag from — resizable by
+   dragging its top edge (see hall.js), not just collapse/expand. Uses
+   the native HTML5 drag-and-drop API — no library.
    ===================================================================== */
+
+.hall-content {
+  padding-bottom: 8rem; /* leave room for the docked tray — kept in sync
+                            with its actual height by hall.js as it's
+                            resized or collapsed */
+}
 
 .hall-map {
   display: grid;
-  grid-template-columns: 1fr 1fr 16rem;
+  grid-template-columns: 1fr 1fr;
   grid-template-areas:
-    "head head head"
-    "bride groom unassigned";
+    "head head"
+    "bride groom";
   gap: 1.5rem 2rem;
   margin-top: 1rem;
 }
@@ -99,7 +104,7 @@
   min-height: 2.5rem;
 }
 .hall-chip-list:empty::after {
-  content: 'Drop a guest here';
+  content: attr(data-empty-label); /* text set from hall.js — see admin-i18n.js */
   display: block;
   font-size: 0.78rem;
   color: var(--ink-soft);
@@ -170,48 +175,80 @@
 .chip-copy-btn:hover { border-color: var(--brass); color: var(--ink); }
 
 /* ---------------------------------------------------------------------
-   Unassigned-guests rail (bottom tray on narrow screens — see below)
+   Docked unassigned-guests tray — resizable by dragging its top edge
    --------------------------------------------------------------------- */
 
 .unassigned-tray {
-  grid-area: unassigned;
-  align-self: start;
+  position: fixed;
+  left: var(--sidebar-width);
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
   background: var(--paper-raised);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -2px 8px rgba(31, 42, 36, 0.06);
+  z-index: 20;
+  transition: transform 200ms ease;
 }
+.unassigned-tray.collapsed { transform: translateY(calc(100% - 2.6rem)); }
+.unassigned-tray.resizing { transition: none; } /* no lag while actively dragging */
+
+.unassigned-tray-resize {
+  height: 8px;
+  margin-top: -4px; /* straddle the top edge so it's easy to grab */
+  cursor: ns-resize;
+  position: relative;
+  flex-shrink: 0;
+}
+.unassigned-tray-resize::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.unassigned-tray-resize:hover::after,
+.unassigned-tray.resizing .unassigned-tray-resize::after { background: var(--brass); }
 
 .unassigned-tray-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.7em 1rem;
+  padding: 0.7em 1.5rem;
+  cursor: pointer;
   border-bottom: 1px solid var(--line-soft);
+  flex-shrink: 0;
 }
 .unassigned-tray-header h3 { margin: 0; font-size: 0.95rem; }
-#unassigned-tray-caret { display: none; } /* collapse is a narrow-screen-only affordance */
 
 .unassigned-tray-body {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: flex-start;
   gap: 0.6em;
-  padding: 1rem;
-  max-height: none;
+  padding: 1rem 1.5rem;
+  height: 9rem; /* default — dragged interactively via the resize handle */
+  overflow-y: auto;
 }
 .unassigned-tray-body.droppable-active {
   background: var(--brass-soft);
 }
+.unassigned-tray-body .guest-chip {
+  width: auto;
+}
 .unassigned-tray-body:empty::after {
-  content: 'Everyone is seated — nice work.';
+  content: attr(data-empty-label); /* text set from hall.js — see admin-i18n.js */
   font-size: 0.85rem;
   color: var(--ink-soft);
   font-style: italic;
 }
 
 @media (max-width: 900px) {
-  .hall-content {
-    padding-bottom: 8rem; /* leave room for the docked tray */
-  }
   .hall-map {
     grid-template-columns: 1fr;
     grid-template-areas:
@@ -219,35 +256,5 @@
       "bride"
       "groom";
   }
-  .unassigned-tray {
-    grid-area: unset;
-    position: fixed;
-    left: var(--sidebar-width);
-    right: 0;
-    bottom: 0;
-    border: none;
-    border-radius: 0;
-    border-top: 1px solid var(--line);
-    box-shadow: 0 -2px 8px rgba(31, 42, 36, 0.06);
-    z-index: 20;
-    transition: transform 200ms ease;
-  }
-  .unassigned-tray.collapsed { transform: translateY(calc(100% - 2.6rem)); }
-  .unassigned-tray-header { cursor: pointer; padding: 0.7em 1.5rem; }
-  #unassigned-tray-caret { display: inline; }
-  .unassigned-tray-body {
-    flex-direction: row;
-    flex-wrap: wrap;
-    max-height: 9rem;
-    overflow-y: auto;
-    padding: 1rem 1.5rem;
-  }
-  .unassigned-tray-body .guest-chip { width: auto; }
-}
-
-@media (max-width: 720px) {
-  /* .sidebar stacks on top of the content here (see shared.css) instead
-     of sitting in a fixed-width left column — the tray should span full
-     width to match. */
   .unassigned-tray { left: 0; }
 }

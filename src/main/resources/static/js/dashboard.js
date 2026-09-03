@@ -6,15 +6,18 @@ import {
   renderPager, escapeHtml, copyToClipboard,
 } from './ui.js';
 import { initGuestEditor, openGuestEditor } from './guest-editor.js';
+import { applyStaticTranslations, initLanguageSwitcher, t } from './admin-i18n.js';
 
 requireAuth();
+applyStaticTranslations();
+initLanguageSwitcher(document.getElementById('lang-switcher'));
 
 // -----------------------------------------------------------------------
 // Sidebar / nav
 // -----------------------------------------------------------------------
 
 document.getElementById('sidebar-role').textContent =
-  getRole() === 'SUPER_ADMIN' ? 'Super admin' : 'Admin';
+  getRole() === 'SUPER_ADMIN' ? t('sidebar-role-super') : t('sidebar-role-admin');
 document.getElementById('sidebar-username').textContent = getUsername() || '';
 document.getElementById('logout-btn').addEventListener('click', logout);
 
@@ -49,7 +52,7 @@ const guestsPager = document.getElementById('guests-pager');
 async function loadGuests(page = 0) {
   guestsPage = page;
   clearBanner(guestsError);
-  setLoading(guestsContainer, 'Loading guests…');
+  setLoading(guestsContainer, t('guests-loading'));
   try {
     const result = await api.listMyGuests({ page, size: 20, sort: 'displayName,asc' });
     renderGuestsTable(result);
@@ -62,19 +65,19 @@ async function loadGuests(page = 0) {
 
 function renderGuestsTable(pageResponse) {
   if (pageResponse.content.length === 0) {
-    setEmpty(guestsContainer, 'No guests yet', 'Add your first guest, or import a list from a .txt file.');
+    setEmpty(guestsContainer, t('guests-empty-title'), t('guests-empty-hint'));
     return;
   }
 
   const rows = pageResponse.content.map((g) => `
     <tr data-id="${g.id}">
-      <td>${escapeHtml(g.displayName)}${g.isGroup ? ' <span class="badge">Group</span>' : ''}</td>
+      <td>${escapeHtml(g.displayName)}${g.isGroup ? ` <span class="badge">${t('badge-group')}</span>` : ''}</td>
       <td>${g.partySize}</td>
-      <td>${g.tableNumber != null ? `Table ${g.tableNumber}` : '—'}</td>
-      <td>${g.firstViewedAt ? 'Viewed' : 'Not viewed yet'}</td>
+      <td>${g.tableNumber != null ? t('table-n', { n: g.tableNumber }) : '—'}</td>
+      <td>${g.firstViewedAt ? t('status-viewed') : t('status-not-viewed')}</td>
       <td class="cell-actions">
-        <button type="button" class="btn btn-sm copy-link-btn" data-url="${escapeHtml(g.invitationUrl)}">Copy link</button>
-        <button type="button" class="btn btn-sm edit-guest-btn">Edit</button>
+        <button type="button" class="btn btn-sm copy-link-btn" data-url="${escapeHtml(g.invitationUrl)}">${t('copy-link-btn')}</button>
+        <button type="button" class="btn btn-sm edit-guest-btn">${t('edit-btn')}</button>
       </td>
     </tr>
   `).join('');
@@ -83,7 +86,7 @@ function renderGuestsTable(pageResponse) {
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Name</th><th>Party</th><th>Table</th><th>Status</th><th></th></tr>
+          <tr><th>${t('th-name')}</th><th>${t('th-party')}</th><th>${t('th-table')}</th><th>${t('th-status')}</th><th></th></tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
@@ -98,7 +101,7 @@ function renderGuestsTable(pageResponse) {
 
   guestsContainer.querySelectorAll('.copy-link-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
-      copyToClipboard(e.target.dataset.url, e.target);
+      copyToClipboard(e.target.dataset.url, e.target, t('copied'));
     });
   });
 }
@@ -119,7 +122,7 @@ document.getElementById('import-submit-btn').addEventListener('click', async () 
   clearBanner(importError);
   importResult.innerHTML = '';
   if (!file) {
-    showError(importError, { message: 'Choose a .txt file first.', details: [] });
+    showError(importError, { message: t('choose-file-first'), details: [] });
     return;
   }
   try {
@@ -137,39 +140,39 @@ function renderImportResult(result) {
     <tr class="${r.errorMessage ? 'import-row-error' : 'import-row-ok'}">
       <td>${r.rowNumber}</td>
       <td>${escapeHtml(r.rawLine)}</td>
-      <td>${r.errorMessage ? escapeHtml(r.errorMessage) : 'Added'}</td>
+      <td>${r.errorMessage ? escapeHtml(r.errorMessage) : t('import-added')}</td>
     </tr>`).join('');
 
   importResult.innerHTML = `
     <div class="banner banner-success">
-      ${result.successRows} of ${result.totalRows} guest(s) added from ${escapeHtml(result.filename)}.
+      ${t('import-success-banner', { success: result.successRows, total: result.totalRows, filename: escapeHtml(result.filename) })}
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Line</th><th>Content</th><th>Result</th></tr></thead>
+        <thead><tr><th>${t('import-result-th-line')}</th><th>${t('import-result-th-content')}</th><th>${t('import-result-th-result')}</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`;
 }
 
 async function loadImportHistory() {
-  setLoading(importHistory, 'Loading import history…');
+  setLoading(importHistory, t('loading-generic'));
   try {
     const batches = await api.listImportBatches();
     if (batches.length === 0) {
-      setEmpty(importHistory, 'No imports yet');
+      setEmpty(importHistory, t('import-empty'));
       return;
     }
     const rows = batches.map((b) => `
       <tr>
         <td>${escapeHtml(b.filename)}</td>
-        <td>${b.successRows}/${b.totalRows} added</td>
+        <td>${t('import-history-result', { success: b.successRows, total: b.totalRows })}</td>
         <td>${b.status}</td>
       </tr>`).join('');
     importHistory.innerHTML = `
       <div class="table-wrap">
         <table>
-          <thead><tr><th>File</th><th>Result</th><th>Status</th></tr></thead>
+          <thead><tr><th>${t('import-history-th-file')}</th><th>${t('import-history-th-result')}</th><th>${t('import-history-th-status')}</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`;

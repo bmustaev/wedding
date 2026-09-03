@@ -5,6 +5,7 @@
 import * as api from './api.js';
 import { getSide, isSuperAdmin } from './auth.js';
 import { showError, clearBanner, openModal, closeModal, escapeHtml, copyToClipboard } from './ui.js';
+import { t, getAdminLanguage } from './admin-i18n.js';
 
 const guestModalBackdrop = document.getElementById('guest-modal-backdrop');
 const guestModalTitle = document.getElementById('guest-modal-title');
@@ -13,6 +14,7 @@ const guestForm = document.getElementById('guest-form');
 const guestIsGroup = document.getElementById('guest-is-group');
 const guestPartySizeField = document.getElementById('guest-party-size-field');
 const guestPartySize = document.getElementById('guest-party-size');
+const guestLanguage = document.getElementById('guest-language');
 const guestMembersField = document.getElementById('guest-members-field');
 const guestMembersList = document.getElementById('guest-members-list');
 const guestLinkField = document.getElementById('guest-link-field');
@@ -43,8 +45,8 @@ function addMemberRow(value = '') {
   const row = document.createElement('div');
   row.className = 'member-input-row';
   row.innerHTML = `
-    <input type="text" class="member-input" value="${escapeHtml(value)}" placeholder="Member name" />
-    <button type="button" class="btn btn-sm remove-member-btn">Remove</button>`;
+    <input type="text" class="member-input" value="${escapeHtml(value)}" placeholder="${t('member-name-placeholder')}" />
+    <button type="button" class="btn btn-sm remove-member-btn">${t('remove-member-btn')}</button>`;
   row.querySelector('.remove-member-btn').addEventListener('click', () => row.remove());
   guestMembersList.appendChild(row);
 }
@@ -57,7 +59,7 @@ function collectMembers() {
 }
 
 async function populateTableSelect(selectedTableId) {
-  guestTableSelect.innerHTML = '<option value="">Not assigned</option>';
+  guestTableSelect.innerHTML = `<option value="">${t('not-assigned')}</option>`;
   try {
     const tables = await api.getSeatingOccupancy();
     const callerSide = getSide();
@@ -65,15 +67,15 @@ async function populateTableSelect(selectedTableId) {
     // new choice — but if this guest is already seated there (assigned via
     // the hall page), keep showing it so an untouched save doesn't
     // silently unseat them.
-    const usable = tables.filter((t) => {
-      if (t.side === 'HEAD') return t.tableId === selectedTableId;
-      return isSuperAdmin() || t.side === callerSide;
+    const usable = tables.filter((table) => {
+      if (table.side === 'HEAD') return table.tableId === selectedTableId;
+      return isSuperAdmin() || table.side === callerSide;
     });
-    for (const t of usable) {
+    for (const table of usable) {
       const opt = document.createElement('option');
-      opt.value = t.tableId;
-      const isCurrent = t.tableId === selectedTableId;
-      opt.textContent = `${t.label} — ${t.seatsLeft}${isCurrent ? ' + this guest' : ''} seat(s) left`;
+      opt.value = table.tableId;
+      const isCurrent = table.tableId === selectedTableId;
+      opt.textContent = `${table.label} — ${table.seatsLeft}${isCurrent ? ' + this guest' : ''} seat(s) left`;
       opt.selected = isCurrent;
       guestTableSelect.appendChild(opt);
     }
@@ -103,7 +105,14 @@ export async function openGuestEditor(guestId) {
   guestDeleteBtn.hidden = !editingGuestId;
   guestLinkField.hidden = !editingGuestId;
   guestMediaSection.hidden = !editingGuestId;
-  guestModalTitle.textContent = editingGuestId ? 'Edit guest' : 'Add guest';
+  guestModalTitle.textContent = editingGuestId ? t('guest-modal-title-edit') : t('guest-modal-title-add');
+
+  // New guests default to the admin's own current dashboard language
+  // rather than always "en" — an admin working in Russian is far more
+  // likely to be inviting Russian-speaking guests than English ones.
+  if (!editingGuestId) {
+    guestLanguage.value = getAdminLanguage();
+  }
 
   editingGuestTableId = null;
   await populateTableSelect(null);
@@ -118,7 +127,7 @@ export async function openGuestEditor(guestId) {
       guestPartySize.value = guest.partySize;
       (guest.groupMembers || []).forEach((m) => addMemberRow(m));
       document.getElementById('guest-greeting').value = guest.greetingMessage || '';
-      document.getElementById('guest-language').value = guest.language || 'en';
+      guestLanguage.value = guest.language || 'en';
       guestInvitationUrl.value = guest.invitationUrl;
       editingGuestTableId = guest.tableId;
       await populateTableSelect(guest.tableId);
@@ -133,14 +142,14 @@ document.getElementById('guest-modal-close').addEventListener('click', () => clo
 document.getElementById('guest-cancel-btn').addEventListener('click', () => closeModal(guestModalBackdrop));
 
 document.getElementById('guest-copy-link-btn').addEventListener('click', (e) => {
-  copyToClipboard(guestInvitationUrl.value, e.target);
+  copyToClipboard(guestInvitationUrl.value, e.target, t('copied'));
 });
 
 document.getElementById('guest-save-btn').addEventListener('click', async () => {
   clearBanner(guestModalError);
   const displayName = document.getElementById('guest-display-name').value.trim();
   if (!displayName) {
-    showError(guestModalError, { message: 'Display name is required.', details: [] });
+    showError(guestModalError, { message: t('display-name-required'), details: [] });
     return;
   }
 
@@ -150,7 +159,7 @@ document.getElementById('guest-save-btn').addEventListener('click', async () => 
     partySize: guestIsGroup.checked ? Number(guestPartySize.value) || 1 : 1,
     groupMembers: guestIsGroup.checked ? collectMembers() : [],
     greetingMessage: document.getElementById('guest-greeting').value.trim() || null,
-    language: document.getElementById('guest-language').value.trim() || 'en',
+    language: guestLanguage.value.trim() || 'en',
   };
 
   try {
@@ -179,7 +188,7 @@ document.getElementById('guest-save-btn').addEventListener('click', async () => 
 
 guestDeleteBtn.addEventListener('click', async () => {
   if (!editingGuestId) return;
-  if (!confirm('Remove this guest from your list? This can\u2019t be undone from here.')) return;
+  if (!confirm(t('confirm-delete-guest'))) return;
   try {
     await api.deleteGuest(editingGuestId);
     closeModal(guestModalBackdrop);
@@ -198,18 +207,21 @@ async function loadGuestMedia(guestId) {
       api.listGuestMedia(guestId),
       api.getGuestMediaAllowance(guestId),
     ]);
-    guestMediaAllowance.textContent =
-      `${allowance.photosUsed} of ${allowance.photosUsed + allowance.photosRemaining} photos · ` +
-      `${allowance.videosUsed} of ${allowance.videosUsed + allowance.videosRemaining} videos`;
+    guestMediaAllowance.textContent = t('media-allowance-template', {
+      photosUsed: allowance.photosUsed,
+      photosTotal: allowance.photosUsed + allowance.photosRemaining,
+      videosUsed: allowance.videosUsed,
+      videosTotal: allowance.videosUsed + allowance.videosRemaining,
+    });
 
     if (items.length === 0) {
-      guestMediaGrid.innerHTML = '<p class="field-hint">No media uploaded yet.</p>';
+      guestMediaGrid.innerHTML = `<p class="field-hint">${t('no-media')}</p>`;
       return;
     }
     for (const item of items) {
       const tile = document.createElement('div');
       tile.className = 'media-tile';
-      tile.innerHTML = `${escapeHtml(item.originalFilename)}<button type="button" aria-label="Delete">&times;</button>`;
+      tile.innerHTML = `${escapeHtml(item.originalFilename)}<button type="button" aria-label="${t('delete-aria')}">&times;</button>`;
       tile.querySelector('button').addEventListener('click', async () => {
         try {
           await api.deleteGuestMedia(guestId, item.id);

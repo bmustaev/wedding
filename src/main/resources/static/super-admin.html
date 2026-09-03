@@ -6,20 +6,26 @@
   <title>Admins — Wedding Admin</title>
   <link rel="stylesheet" href="css/shared.css" />
 </head>
-<body>
+<body data-i18n-title="super-admin-doc-title">
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="sidebar-brand">Wedding Admin</div>
-      <div class="sidebar-role">Super admin</div>
+      <div style="display:flex; justify-content:flex-end; margin-bottom:0.75rem;">
+        <div class="lang-toggle" id="lang-switcher">
+          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="ru">RU</button>
+        </div>
+      </div>
+      <div class="sidebar-brand" data-i18n="app-brand">Wedding Admin</div>
+      <div class="sidebar-role" data-i18n="sidebar-role-super">Super admin</div>
 
       <nav class="sidebar-nav">
-        <button type="button" id="nav-back">&larr; Back to my dashboard</button>
-        <button type="button" data-target="admins" class="active">Admins</button>
+        <button type="button" id="nav-back" data-i18n="nav-back-to-dashboard">&larr; Back to my dashboard</button>
+        <button type="button" data-target="admins" class="active" data-i18n="nav-admins">Admins</button>
       </nav>
 
       <div class="sidebar-footer">
         <div class="field-hint" id="sidebar-username" style="margin-bottom:0.6em;"></div>
-        <button type="button" class="btn btn-sm" id="logout-btn">Sign out</button>
+        <button type="button" class="btn btn-sm" id="logout-btn" data-i18n="sign-out">Sign out</button>
       </div>
     </aside>
 
@@ -28,11 +34,11 @@
       <section data-panel="admins" class="active">
         <div class="content-header">
           <div>
-            <h1>Admins</h1>
-            <p class="field-hint" style="margin:0;">Every admin's own guest list stays private from every other admin — you can view, but not edit, from here.</p>
+            <h1 data-i18n="admins-heading">Admins</h1>
+            <p class="field-hint" style="margin:0;" data-i18n="admins-subtitle">Every admin's own guest list stays private from every other admin — you can view, but not edit, from here.</p>
           </div>
           <div class="actions">
-            <button type="button" class="btn btn-primary" id="add-admin-btn">New admin</button>
+            <button type="button" class="btn btn-primary" id="add-admin-btn" data-i18n="new-admin-btn">New admin</button>
           </div>
         </div>
 
@@ -45,10 +51,10 @@
         <div class="content-header">
           <div>
             <h1 id="admin-guests-title">Guests</h1>
-            <p class="field-hint" style="margin:0;">Read-only view.</p>
+            <p class="field-hint" style="margin:0;" data-i18n="admin-guests-subtitle">Read-only view.</p>
           </div>
           <div class="actions">
-            <button type="button" class="btn btn-sm" id="back-to-admins-btn">&larr; Back to admins</button>
+            <button type="button" class="btn btn-sm" id="back-to-admins-btn" data-i18n="back-to-admins-btn">&larr; Back to admins</button>
           </div>
         </div>
 
@@ -63,7 +69,7 @@
   <div class="modal-backdrop" id="admin-modal-backdrop" hidden>
     <div class="modal">
       <div class="modal-header">
-        <h2>New admin</h2>
+        <h2 data-i18n="new-admin-modal-title">New admin</h2>
         <button type="button" class="modal-close" id="admin-modal-close" aria-label="Close">&times;</button>
       </div>
 
@@ -71,26 +77,26 @@
 
       <form id="admin-form">
         <div class="field">
-          <label for="admin-username">Username</label>
+          <label for="admin-username" data-i18n="admin-username-label">Username</label>
           <input type="text" id="admin-username" minlength="3" maxlength="64" required />
         </div>
         <div class="field">
-          <label for="admin-side">Side</label>
+          <label for="admin-side" data-i18n="admin-side-label">Side</label>
           <select id="admin-side" required>
-            <option value="BRIDE">Bride</option>
-            <option value="GROOM">Groom</option>
+            <option value="BRIDE" data-i18n="side-bride">Bride</option>
+            <option value="GROOM" data-i18n="side-groom">Groom</option>
           </select>
         </div>
         <div class="field">
-          <label for="admin-password">Password</label>
+          <label for="admin-password" data-i18n="admin-password-label">Password</label>
           <input type="password" id="admin-password" minlength="8" maxlength="128" required />
-          <p class="field-hint">At least 8 characters. Share it with them directly — it won't be shown again here.</p>
+          <p class="field-hint" data-i18n="admin-password-hint">At least 8 characters. Share it with them directly — it won't be shown again here.</p>
         </div>
       </form>
 
       <div class="modal-footer">
-        <button type="button" class="btn" id="admin-cancel-btn">Cancel</button>
-        <button type="button" class="btn btn-primary" id="admin-save-btn">Create admin</button>
+        <button type="button" class="btn" id="admin-cancel-btn" data-i18n="cancel-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="admin-save-btn" data-i18n="create-admin-btn">Create admin</button>
       </div>
     </div>
   </div>

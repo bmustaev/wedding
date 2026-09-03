@@ -1,6 +1,9 @@
 // ui.js — small shared rendering helpers used across dashboard.js,
 // super-admin.js, and invitation.js, so error/pagination/modal handling
-// isn't reimplemented per page.
+// isn't reimplemented per page. renderPager is admin-only (invitation.js
+// has no pagination), so it's the one function here that pulls in
+// admin-i18n.js — everything else stays audience-agnostic.
+import { t } from './admin-i18n.js';
 
 /** Renders the backend's {message, details} error shape into a banner element. */
 export function showError(container, err) {
@@ -54,17 +57,17 @@ export function renderPager(container, pageResponse, onChange) {
   if (totalPages <= 1) return;
 
   const label = document.createElement('span');
-  label.textContent = `Page ${page + 1} of ${totalPages}`;
+  label.textContent = t('pager-label', { page: page + 1, total: totalPages });
 
   const prev = document.createElement('button');
   prev.className = 'btn btn-sm';
-  prev.textContent = 'Previous';
+  prev.textContent = t('pager-prev');
   prev.disabled = page <= 0;
   prev.addEventListener('click', () => onChange(page - 1));
 
   const next = document.createElement('button');
   next.className = 'btn btn-sm';
-  next.textContent = 'Next';
+  next.textContent = t('pager-next');
   next.disabled = page >= totalPages - 1;
   next.addEventListener('click', () => onChange(page + 1));
 

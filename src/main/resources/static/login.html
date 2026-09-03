@@ -6,24 +6,30 @@
   <title>Sign in — Wedding Admin</title>
   <link rel="stylesheet" href="css/shared.css" />
 </head>
-<body>
+<body data-i18n-title="login-doc-title">
   <div class="auth-shell">
     <div class="auth-card">
-      <h1>Wedding Admin</h1>
-      <p class="auth-subtitle">Sign in to manage guests, seating, and invitations.</p>
+      <div style="display:flex; justify-content:flex-end; margin-bottom:0.75rem;">
+        <div class="lang-toggle" id="lang-switcher">
+          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="ru">RU</button>
+        </div>
+      </div>
+      <h1 data-i18n="login-heading">Wedding Admin</h1>
+      <p class="auth-subtitle" data-i18n="login-subtitle">Sign in to manage guests, seating, and invitations.</p>
 
       <div id="error-banner" class="banner banner-error" hidden></div>
 
       <form id="login-form" novalidate>
         <div class="field">
-          <label for="username">Username</label>
+          <label for="username" data-i18n="login-username-label">Username</label>
           <input type="text" id="username" name="username" autocomplete="username" required />
         </div>
         <div class="field">
-          <label for="password">Password</label>
+          <label for="password" data-i18n="login-password-label">Password</label>
           <input type="password" id="password" name="password" autocomplete="current-password" required />
         </div>
-        <button type="submit" class="btn btn-primary" id="login-submit">Sign in</button>
+        <button type="submit" class="btn btn-primary" id="login-submit" data-i18n="login-submit">Sign in</button>
       </form>
     </div>
   </div>

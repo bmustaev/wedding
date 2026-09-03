@@ -7,66 +7,71 @@
   <link rel="stylesheet" href="css/shared.css" />
   <link rel="stylesheet" href="css/hall.css" />
 </head>
-<body>
+<body data-i18n-title="hall-doc-title">
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="sidebar-brand">Wedding Admin</div>
+      <div style="display:flex; justify-content:flex-end; margin-bottom:0.75rem;">
+        <div class="lang-toggle" id="lang-switcher">
+          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="ru">RU</button>
+        </div>
+      </div>
+      <div class="sidebar-brand" data-i18n="app-brand">Wedding Admin</div>
       <div class="sidebar-role" id="sidebar-role">—</div>
 
       <nav class="sidebar-nav">
-        <button type="button" id="nav-dashboard">Guests</button>
-        <button type="button" class="active">Hall</button>
-        <button type="button" id="nav-super-admin" hidden>Admins</button>
+        <button type="button" id="nav-dashboard" data-i18n="nav-guests">Guests</button>
+        <button type="button" class="active" data-i18n="nav-hall">Hall</button>
+        <button type="button" id="nav-super-admin" hidden data-i18n="nav-admins">Admins</button>
       </nav>
 
       <div class="sidebar-footer">
         <div class="field-hint" id="sidebar-username" style="margin-bottom:0.6em;"></div>
-        <button type="button" class="btn btn-sm" id="logout-btn">Sign out</button>
+        <button type="button" class="btn btn-sm" id="logout-btn" data-i18n="sign-out">Sign out</button>
       </div>
     </aside>
 
     <main class="content hall-content">
       <div class="content-header">
         <div>
-          <h1>Wedding hall</h1>
-          <p class="field-hint" style="margin:0;">Drag guests between your own side's tables. The other side's tables are visible but not yours to arrange.</p>
+          <h1 data-i18n="hall-heading">Wedding hall</h1>
+          <p class="field-hint" style="margin:0;" data-i18n="hall-subtitle">Drag guests between your own side's tables. The other side's tables are visible but not yours to arrange.</p>
         </div>
         <div class="actions">
-          <button type="button" class="btn btn-sm" id="hall-import-btn">Import list</button>
-          <button type="button" class="btn btn-primary" id="hall-add-guest-btn">Add guest</button>
+          <button type="button" class="btn btn-sm" id="hall-import-btn" data-i18n="import-list-btn">Import list</button>
+          <button type="button" class="btn btn-primary" id="hall-add-guest-btn" data-i18n="add-guest-btn">Add guest</button>
         </div>
       </div>
 
       <div id="hall-error" class="banner banner-error" hidden></div>
-      <div id="hall-loading" class="loading-state"><span class="spinner"></span>Loading the hall…</div>
+      <div id="hall-loading" class="loading-state"><span class="spinner"></span><span data-i18n="hall-loading">Loading the hall…</span></div>
 
       <div id="hall-map" class="hall-map" hidden>
         <div class="hall-head-zone" id="hall-head-zone"></div>
         <div class="hall-bride-zone">
           <div class="hall-side-header">
-            <h2>Bride's tables</h2>
+            <h2 data-i18n="bride-tables-heading">Bride's tables</h2>
           </div>
           <div class="hall-tables-column" id="hall-bride-column"></div>
         </div>
         <div class="hall-groom-zone">
           <div class="hall-side-header">
-            <h2>Groom's tables</h2>
+            <h2 data-i18n="groom-tables-heading">Groom's tables</h2>
           </div>
           <div class="hall-tables-column" id="hall-groom-column"></div>
         </div>
-
-        <!-- Persistent rail on wide screens, next to the tables you're
-             dragging into; collapses into a docked bottom tray on narrow
-             ones (see hall.css's max-width:900px block). -->
-        <div class="unassigned-tray" id="unassigned-tray">
-          <div class="unassigned-tray-header" id="unassigned-tray-toggle">
-            <h3>Unassigned guests (<span id="unassigned-count">0</span>)</h3>
-            <span id="unassigned-tray-caret">&#9650;</span>
-          </div>
-          <div class="unassigned-tray-body" id="unassigned-tray-body"></div>
-        </div>
       </div>
     </main>
+  </div>
+
+  <!-- ============================= UNASSIGNED TRAY ============================= -->
+  <div class="unassigned-tray" id="unassigned-tray">
+    <div class="unassigned-tray-resize" id="unassigned-tray-resize" aria-hidden="true"></div>
+    <div class="unassigned-tray-header" id="unassigned-tray-toggle">
+      <h3><span data-i18n="unassigned-heading-prefix">Unassigned guests</span> (<span id="unassigned-count">0</span>)</h3>
+      <span id="unassigned-tray-caret">&#9650;</span>
+    </div>
+    <div class="unassigned-tray-body" id="unassigned-tray-body"></div>
   </div>
 
   <!-- ============================= GUEST EDITOR MODAL (shared with dashboard.html) ============================= -->
@@ -81,72 +86,78 @@
 
       <form id="guest-form">
         <div class="field">
-          <label for="guest-display-name">Display name</label>
+          <label for="guest-display-name" data-i18n="guest-name-label">Display name</label>
           <input type="text" id="guest-display-name" required />
-          <p class="field-hint">Shown on the invitation, e.g. "Jane Doe" or "The Miller Family"</p>
+          <p class="field-hint" data-i18n="guest-name-hint">Shown on the invitation, e.g. "Jane Doe" or "The Miller Family"</p>
         </div>
 
         <div class="checkbox-row field">
           <input type="checkbox" id="guest-is-group" />
-          <label for="guest-is-group" style="margin:0;">This is a group or family</label>
+          <label for="guest-is-group" style="margin:0;" data-i18n="guest-is-group-label">This is a group or family</label>
         </div>
 
         <div class="form-row">
           <div class="field" id="guest-party-size-field" hidden>
-            <label for="guest-party-size">Party size</label>
+            <label for="guest-party-size" data-i18n="guest-party-size-label">Party size</label>
             <input type="number" id="guest-party-size" min="1" value="1" />
           </div>
           <div class="field">
-            <label for="guest-language">Language</label>
-            <input type="text" id="guest-language" value="en" style="max-width:6rem;" />
+            <label for="guest-language" data-i18n="guest-language-label">Invitation language</label>
+            <select id="guest-language" style="max-width:10rem;">
+              <option value="en" data-i18n="lang-option-en">English</option>
+              <option value="ru" data-i18n="lang-option-ru">Russian</option>
+              <option value="uz" data-i18n="lang-option-uz">Uzbek</option>
+            </select>
           </div>
         </div>
 
         <div class="field" id="guest-members-field" hidden>
-          <label>Group member names</label>
+          <label data-i18n="guest-members-label">Group member names</label>
           <div id="guest-members-list"></div>
-          <button type="button" class="btn btn-sm" id="guest-add-member-btn">Add member</button>
+          <button type="button" class="btn btn-sm" id="guest-add-member-btn" data-i18n="add-member-btn">Add member</button>
         </div>
 
         <div class="field">
-          <label for="guest-greeting">Greeting message</label>
-          <textarea id="guest-greeting" placeholder="So excited to celebrate with you!"></textarea>
+          <label for="guest-greeting" data-i18n="guest-greeting-label">Greeting message</label>
+          <textarea id="guest-greeting" data-i18n-placeholder="guest-greeting-placeholder" placeholder="So excited to celebrate with you!"></textarea>
         </div>
 
         <div class="field">
-          <label for="guest-table">Table</label>
+          <label for="guest-table" data-i18n="guest-table-label">Table</label>
           <select id="guest-table">
-            <option value="">Not assigned</option>
+            <option value="" data-i18n="not-assigned">Not assigned</option>
           </select>
         </div>
 
         <div class="field" id="guest-link-field" hidden>
-          <label>Invitation link</label>
+          <label data-i18n="guest-link-label">Invitation link</label>
           <div style="display:flex; gap:0.5em;">
             <input type="text" id="guest-invitation-url" readonly />
-            <button type="button" class="btn btn-sm" id="guest-copy-link-btn">Copy</button>
+            <button type="button" class="btn btn-sm" id="guest-copy-link-btn" data-i18n="copy-btn">Copy</button>
           </div>
         </div>
       </form>
 
       <div id="guest-media-section" hidden style="margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid var(--line-soft);">
-        <h3>Media</h3>
+        <h3 data-i18n="guest-media-heading">Media</h3>
         <div id="guest-media-allowance" class="media-allowance"></div>
         <div id="guest-media-grid" class="media-grid"></div>
         <div style="display:flex; gap:0.6em; flex-wrap:wrap;">
-          <label class="btn btn-sm" for="guest-upload-photo" style="margin:0;">Add photo
+          <label class="btn btn-sm" for="guest-upload-photo" style="margin:0;">
+            <span data-i18n="add-photo-btn">Add photo</span>
             <input type="file" id="guest-upload-photo" accept="image/*" hidden />
           </label>
-          <label class="btn btn-sm" for="guest-upload-video" style="margin:0;">Add video
+          <label class="btn btn-sm" for="guest-upload-video" style="margin:0;">
+            <span data-i18n="add-video-btn">Add video</span>
             <input type="file" id="guest-upload-video" accept="video/*" hidden />
           </label>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-danger" id="guest-delete-btn" hidden>Delete guest</button>
-        <button type="button" class="btn" id="guest-cancel-btn">Cancel</button>
-        <button type="button" class="btn btn-primary" id="guest-save-btn">Save</button>
+        <button type="button" class="btn btn-danger" id="guest-delete-btn" hidden data-i18n="delete-guest-btn">Delete guest</button>
+        <button type="button" class="btn" id="guest-cancel-btn" data-i18n="cancel-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="guest-save-btn" data-i18n="save-btn">Save</button>
       </div>
     </div>
   </div>
@@ -155,16 +166,16 @@
   <div class="modal-backdrop" id="import-modal-backdrop" hidden>
     <div class="modal">
       <div class="modal-header">
-        <h2>Import guest list</h2>
+        <h2 data-i18n="import-modal-title">Import guest list</h2>
         <button type="button" class="modal-close" id="import-modal-close" aria-label="Close">&times;</button>
       </div>
 
       <div id="hall-import-error" class="banner banner-error" hidden></div>
 
       <div class="field">
-        <label for="hall-import-file">Guest list (.txt)</label>
+        <label for="hall-import-file" data-i18n="import-file-label">Guest list (.txt)</label>
         <input type="file" id="hall-import-file" accept=".txt,text/plain" />
-        <p class="field-hint">
+        <p class="field-hint" data-i18n="import-file-hint">
           One guest per line: <code>Name</code>, or <code>Name;PartySize</code>, or
           <code>Name;PartySize;Member1,Member2</code>.
         </p>
@@ -173,8 +184,8 @@
       <div id="hall-import-result"></div>
 
       <div class="modal-footer">
-        <button type="button" class="btn" id="hall-import-close-btn">Close</button>
-        <button type="button" class="btn btn-primary" id="hall-import-upload-btn">Upload</button>
+        <button type="button" class="btn" id="hall-import-close-btn" data-i18n="close-btn">Close</button>
+        <button type="button" class="btn btn-primary" id="hall-import-upload-btn" data-i18n="import-upload-btn">Upload</button>
       </div>
     </div>
   </div>

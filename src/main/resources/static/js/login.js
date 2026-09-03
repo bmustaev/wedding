@@ -2,6 +2,10 @@
 import { login } from './api.js';
 import { saveSession, isLoggedIn } from './auth.js';
 import { showError, clearBanner } from './ui.js';
+import { applyStaticTranslations, initLanguageSwitcher, t } from './admin-i18n.js';
+
+applyStaticTranslations();
+initLanguageSwitcher(document.getElementById('lang-switcher'));
 
 if (isLoggedIn()) {
   location.href = 'dashboard.html';
@@ -19,7 +23,7 @@ form.addEventListener('submit', async (e) => {
   const password = document.getElementById('password').value;
 
   submitBtn.disabled = true;
-  submitBtn.textContent = 'Signing in…';
+  submitBtn.textContent = t('login-submitting');
 
   try {
     const result = await login(username, password);
@@ -29,6 +33,6 @@ form.addEventListener('submit', async (e) => {
     showError(errorBanner, err);
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Sign in';
+    submitBtn.textContent = t('login-submit');
   }
 });
