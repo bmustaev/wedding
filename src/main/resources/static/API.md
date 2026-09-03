@@ -202,6 +202,12 @@ All fields optional — only send what changes.
 }
 ```
 
+To turn a single guest into a group (or back), include `isGroup` explicitly:
+```json
+{ "isGroup": true, "partySize": 4, "groupMembers": ["Tom Miller", "Ann Miller", "Lucy Miller", "Ben Miller"] }
+```
+Setting `isGroup: false` forces `partySize` back to `1` server-side regardless of what's sent, same as on create (`ck_guests_group_size`).
+
 **Response `200`:** the updated `GuestResponse`. Editing content bumps `pageGeneratedAt` (treated as a regeneration of the invitation page).
 
 ### `DELETE /api/guests/{guestId}`
@@ -331,7 +337,7 @@ curl -X POST http://localhost:8080/api/guests/$GUEST_ID/media/photos \
 
 ## 4. Seating
 
-Every table belongs to a **side**: `"BRIDE"`, `"GROOM"`, or `"HEAD"` (the single, fixed bride-and-groom table). An admin can only assign guests to, or manage tables on, their own side — the head table is open to either side for their own guests. Table numbering restarts per side (a "1B" and a "1D" coexist); the head table has `tableNumber: null` and is always labeled `"Head Table"`.
+Every table belongs to a **side**: `"BRIDE"`, `"GROOM"`, or `"HEAD"` (the single, fixed bride-and-groom table). An admin can only assign guests to, or manage tables on, their own side — the head table is open to either side for their own guests. Table numbering restarts per side (a "1D" and a "1B" coexist — bride tables get the `D` suffix, groom tables get `B`, per this deployment's couple); the head table has `tableNumber: null` and is always labeled `"Head Table"`.
 
 ### `GET /api/seating/occupancy`
 
@@ -342,8 +348,8 @@ Seat counts only, no guest names — safe regardless of who owns what.
 **Response `200`:**
 ```json
 [
-  { "tableId": "b2c3d4e5-...", "side": "BRIDE", "tableNumber": 1, "label": "1B", "capacity": 12, "seatsTaken": 5, "seatsLeft": 7 },
-  { "tableId": "c3d4e5f6-...", "side": "GROOM", "tableNumber": 1, "label": "1D", "capacity": 12, "seatsTaken": 0, "seatsLeft": 12 },
+  { "tableId": "b2c3d4e5-...", "side": "BRIDE", "tableNumber": 1, "label": "1D", "capacity": 12, "seatsTaken": 5, "seatsLeft": 7 },
+  { "tableId": "c3d4e5f6-...", "side": "GROOM", "tableNumber": 1, "label": "1B", "capacity": 12, "seatsTaken": 0, "seatsLeft": 12 },
   { "tableId": "d1e2f3a4-...", "side": "HEAD", "tableNumber": null, "label": "Head Table", "capacity": 2, "seatsTaken": 1, "seatsLeft": 1 }
 ]
 ```
@@ -361,7 +367,7 @@ Every table across all three sides. **Own guests show by name; every other admin
     "tableId": "b2c3d4e5-...",
     "side": "BRIDE",
     "tableNumber": 1,
-    "label": "1B",
+    "label": "1D",
     "capacity": 12,
     "seatsLeft": 7,
     "guestId": "3fa85f64-...",
@@ -373,7 +379,7 @@ Every table across all three sides. **Own guests show by name; every other admin
     "tableId": "c3d4e5f6-...",
     "side": "GROOM",
     "tableNumber": 1,
-    "label": "1D",
+    "label": "1B",
     "capacity": 12,
     "seatsLeft": 12,
     "guestId": null,
@@ -402,13 +408,13 @@ Everything the hall-map page needs in a single call: the head table, every bride
   },
   "brideTables": [
     {
-      "id": "b2c3d4e5-...", "side": "BRIDE", "tableNumber": 1, "label": "1B",
+      "id": "b2c3d4e5-...", "side": "BRIDE", "tableNumber": 1, "label": "1D",
       "capacity": 12, "seatsLeft": 7,
       "guests": [{ "guestId": "3fa85f64-...", "displayName": "The Miller Family", "partySize": 4, "ownGuest": true }]
     }
   ],
   "groomTables": [
-    { "id": "c3d4e5f6-...", "side": "GROOM", "tableNumber": 1, "label": "1D", "capacity": 12, "seatsLeft": 12, "guests": [] }
+    { "id": "c3d4e5f6-...", "side": "GROOM", "tableNumber": 1, "label": "1B", "capacity": 12, "seatsLeft": 12, "guests": [] }
   ],
   "unassignedGuests": [
     { "id": "f6a1b2c3-...", "displayName": "Jane Doe", "partySize": 1, "isGroup": false }
@@ -430,7 +436,7 @@ Adds a table on the **caller's own side**. The table number is auto-assigned (ne
 
 **Response `201`:**
 ```json
-{ "id": "a1b2c3d4-...", "side": "BRIDE", "tableNumber": 3, "label": "3B", "capacity": 12, "seatsLeft": 12 }
+{ "id": "a1b2c3d4-...", "side": "BRIDE", "tableNumber": 3, "label": "3D", "capacity": 12, "seatsLeft": 12 }
 ```
 
 ### `DELETE /api/seating/tables/{tableId}`
@@ -589,10 +595,13 @@ curl http://localhost:8080/api/public/invitations/a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3
   "greetingMessage": "So excited to celebrate with you!",
   "language": "en",
   "tableNumber": 1,
+  "tableLabel": "1D",
   "photosRemaining": 15,
   "videosRemaining": 4
 }
 ```
+
+`tableLabel` is the side-qualified form guests actually recognize — bride tables are `"{n}D"`, groom tables `"{n}B"`, the head table is `"Head Table"` (see the seating section below). Both `tableNumber` and `tableLabel` are `null` until the guest has a table assigned.
 
 First call marks `first_viewed_at` on the guest record server-side (not returned in this response, but visible to the admin via `GET /api/guests/{id}`).
 

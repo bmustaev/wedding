@@ -94,6 +94,9 @@ public class GuestService {
         if (request.displayName() != null) {
             guest.setDisplayName(request.displayName());
         }
+        if (request.isGroup() != null) {
+            guest.setGroup(request.isGroup());
+        }
         if (request.partySize() != null) {
             guest.setPartySize(request.partySize());
         }
@@ -105,6 +108,9 @@ public class GuestService {
         }
         if (request.language() != null) {
             guest.setLanguage(request.language());
+        }
+        if (!guest.isGroup()) {
+            guest.setPartySize(1); // defense-in-depth — matches ck_guests_group_size
         }
         // Content changed — treat this as a regeneration of the invitation page.
         guest.setPageGeneratedAt(Instant.now());
@@ -143,7 +149,9 @@ public class GuestService {
         }
 
         MediaAllowanceResponse allowance = guestMediaService.getAllowance(guest.getId());
-        Integer tableNumber = guest.getTable() != null ? guest.getTable().getTableNumber() : null;
+        SeatingTable table = guest.getTable();
+        Integer tableNumber = table != null ? table.getTableNumber() : null;
+        String tableLabel = table != null ? table.getLabel() : null;
 
         return new PublicInvitationResponse(
                 guest.getDisplayName(),
@@ -152,6 +160,7 @@ public class GuestService {
                 guest.getGreetingMessage(),
                 guest.getLanguage(),
                 tableNumber,
+                tableLabel,
                 allowance.photosRemaining(),
                 allowance.videosRemaining());
     }

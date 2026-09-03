@@ -52,4 +52,4 @@ This is simple but is vulnerable to XSS (any injected script can read `localStor
 
 - No client-side form validation beyond what's needed to avoid obviously-bad requests (required fields, min length) — the backend's validation (`400` responses with `details[]`) is the source of truth and is what's actually displayed on error.
 - No automated tests.
-- No i18n/translation of the UI chrome itself — only the guest-entered `language` field is stored and displayed back as-is; the admin dashboard and invitation page copy are English only.
+- No i18n/translation of the UI chrome itself — only the guest-entered `language` field is stored and displayed back as-is. The admin dashboard is English only; `invitation.html` is hardcoded in Russian to match this deployment's actual wedding (fixed date/venue copy lives inline in the page, guest name/table/greeting come from the API).

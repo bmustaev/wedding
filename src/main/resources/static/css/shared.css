@@ -2,7 +2,9 @@
    Wedding Invitation Platform — shared styles
    Design system: fine-stationery ink/wine/brass palette, hairline rules
    instead of card shadows, Fraunces for display type + Public Sans for
-   body/UI. See invitation.css for the guest-facing page's own additions.
+   body/UI. Used by the admin-facing pages (login, dashboard, hall,
+   super-admin) — invitation.html is guest-facing and has its own
+   self-contained, differently-branded stylesheet inline.
    ===================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Public+Sans:wght@400;500;600;700&display=swap');
