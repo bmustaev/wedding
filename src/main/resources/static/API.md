@@ -122,6 +122,8 @@ curl http://localhost:8080/api/guests?page=0&size=20 \
       "isGroup": true,
       "partySize": 4,
       "groupMembers": ["Tom Miller", "Ann Miller", "Lucy Miller", "Ben Miller"],
+      "greetingMessage": "So excited to celebrate with you!",
+      "language": "ru",
       "landingSlug": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
       "invitationUrl": "http://localhost:8080/i/a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
       "tableId": "b2c3d4e5-f6a1-b2c3-d4e5-f6a1b2c3d4e5",
@@ -170,7 +172,7 @@ curl http://localhost:8080/api/guests?page=0&size=20 \
 | `partySize` | no (default `1`) | Min `1`; forced to `1` server-side if `isGroup` is `false` |
 | `groupMembers` | no | Individual names, display only |
 | `greetingMessage` | no | Custom text on the landing page |
-| `language` | no (default `"en"`) | `"en"`, `"ru"`, or `"uz"` — selects which language `invitation.html` renders in for this guest (see its README.md). Any other value falls back to Russian client-side; not validated server-side. |
+| `language` | no (default `"ru"`) | `"en"`, `"ru"`, or `"uz"` — selects which language `invitation.html` renders in for this guest (see its README.md). Any other value falls back to Russian client-side; not validated server-side. |
 
 **Response `201`:** same shape as a `GuestResponse` above. `landingSlug`/`invitationUrl` are generated automatically — the landing page exists as soon as the guest is created, no separate "generate" step.
 

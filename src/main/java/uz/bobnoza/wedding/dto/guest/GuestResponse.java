@@ -10,6 +10,8 @@ public record GuestResponse(
         boolean isGroup,
         int partySize,
         List<String> groupMembers,
+        String greetingMessage,
+        String language,
         String landingSlug,
         String invitationUrl,
         UUID tableId,

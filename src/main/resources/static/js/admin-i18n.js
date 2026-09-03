@@ -15,7 +15,7 @@
 
 export const ADMIN_LANGUAGES = ['en', 'ru'];
 const STORAGE_KEY = 'wedding_admin_ui_language';
-const DEFAULT_LANGUAGE = 'en';
+const DEFAULT_LANGUAGE = 'ru';
 
 export function getAdminLanguage() {
   const stored = localStorage.getItem(STORAGE_KEY);

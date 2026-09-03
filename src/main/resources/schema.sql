@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS guests (
     party_size          INT NOT NULL DEFAULT 1,
     group_members       TEXT NULL,              -- comma-separated names; see StringListCsvConverter
     greeting_message    TEXT NULL,
-    language            VARCHAR(10) NOT NULL DEFAULT 'en',
+    language            VARCHAR(10) NOT NULL DEFAULT 'ru',
     landing_slug        VARCHAR(64) NOT NULL,     -- generated app-side (SecureRandom), see Guest#generateSlug
     page_generated_at   DATETIME NULL,
     first_viewed_at     DATETIME NULL,

@@ -100,8 +100,12 @@ function renderGuestsTable(pageResponse) {
   });
 
   guestsContainer.querySelectorAll('.copy-link-btn').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      copyToClipboard(e.target.dataset.url, e.target, t('copied'));
+    btn.addEventListener('click', async (e) => {
+      try {
+        await copyToClipboard(e.target.dataset.url, e.target, t('copied'));
+      } catch (err) {
+        showError(guestsError, err);
+      }
     });
   });
 }

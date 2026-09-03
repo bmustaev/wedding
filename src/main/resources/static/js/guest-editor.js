@@ -141,8 +141,12 @@ export async function openGuestEditor(guestId) {
 document.getElementById('guest-modal-close').addEventListener('click', () => closeModal(guestModalBackdrop));
 document.getElementById('guest-cancel-btn').addEventListener('click', () => closeModal(guestModalBackdrop));
 
-document.getElementById('guest-copy-link-btn').addEventListener('click', (e) => {
-  copyToClipboard(guestInvitationUrl.value, e.target, t('copied'));
+document.getElementById('guest-copy-link-btn').addEventListener('click', async (e) => {
+  try {
+    await copyToClipboard(guestInvitationUrl.value, e.target, t('copied'));
+  } catch (err) {
+    showError(guestModalError, err);
+  }
 });
 
 document.getElementById('guest-save-btn').addEventListener('click', async () => {

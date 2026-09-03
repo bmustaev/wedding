@@ -277,7 +277,7 @@ function wireCopyButtons() {
       e.stopPropagation();
       try {
         const guest = await api.getGuest(btn.dataset.guestId);
-        copyToClipboard(guest.invitationUrl, btn, t('copied'));
+        await copyToClipboard(guest.invitationUrl, btn, t('copied'));
       } catch (err) {
         showError(hallError, err);
       }

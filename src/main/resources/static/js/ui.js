@@ -82,9 +82,45 @@ export function closeModal(modalEl) {
   modalEl.hidden = true;
 }
 
-/** Copies `text`, briefly swapping `btn`'s label to `copiedLabel` as feedback. */
+/**
+ * Copies `text`, briefly swapping `btn`'s label to `copiedLabel` as feedback.
+ * navigator.clipboard is only defined in a secure context (HTTPS or
+ * localhost) — this app is sometimes deployed over plain HTTP, where it's
+ * undefined and would otherwise fail silently (an unawaited rejected
+ * promise). Falls back to the legacy execCommand('copy') path via a
+ * temporary off-screen textarea, and throws if both approaches fail so
+ * callers can surface an error instead of the button just doing nothing.
+ */
 export async function copyToClipboard(text, btn, copiedLabel = 'Copied') {
-  await navigator.clipboard.writeText(text);
+  let copied = false;
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      copied = true;
+    } catch {
+      // fall through to the legacy path below
+    }
+  }
+  if (!copied) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.top = '-1000px';
+    textarea.style.left = '-1000px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+      copied = document.execCommand('copy');
+    } catch {
+      copied = false;
+    } finally {
+      textarea.remove();
+    }
+  }
+  if (!copied) {
+    throw new Error('Copy failed — copy the link manually.');
+  }
   const original = btn.textContent;
   btn.textContent = copiedLabel;
   setTimeout(() => { btn.textContent = original; }, 1500);

@@ -61,7 +61,7 @@ public class Guest {
     private String greetingMessage;
 
     @Column(nullable = false)
-    private String language = "en";
+    private String language = "ru";
 
     /** Unguessable public token used in the invitation URL. Never expose {@link #id} instead. */
     @Column(name = "landing_slug", nullable = false, unique = true, updatable = false)
@@ -309,7 +309,7 @@ public class Guest {
         private int partySize = 1;
         private List<String> groupMembers;
         private String greetingMessage;
-        private String language = "en";
+        private String language = "ru";
         private String landingSlug;
         private Instant pageGeneratedAt;
         private Instant firstViewedAt;

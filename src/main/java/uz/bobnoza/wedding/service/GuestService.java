@@ -79,7 +79,7 @@ public class GuestService {
                 .partySize(partySize)
                 .groupMembers(request.groupMembers())
                 .greetingMessage(request.greetingMessage())
-                .language(request.language() != null ? request.language() : "en")
+                .language(request.language() != null ? request.language() : "ru")
                 // The landing page exists as soon as the guest does — no separate "generate" step.
                 .pageGeneratedAt(Instant.now())
                 .build();
@@ -194,6 +194,8 @@ public class GuestService {
                 guest.isGroup(),
                 guest.getPartySize(),
                 guest.getGroupMembers(),
+                guest.getGreetingMessage(),
+                guest.getLanguage(),
                 guest.getLandingSlug(),
                 invitationBaseUrl + "/" + guest.getLandingSlug(),
                 tableId,
