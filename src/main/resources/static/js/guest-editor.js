@@ -58,6 +58,35 @@ function collectMembers() {
     .filter((v) => v.length > 0);
 }
 
+// The closed <select> box and its open dropdown list always render the same
+// per-option text natively — there's no way to show more detail in the list
+// than in the box. So each option here carries both variants as data
+// attributes, and showFullTableLabels()/collapseSelectedTableLabel() (wired
+// up below, once, at module load) swap the currently-selected option's
+// textContent between them as the dropdown opens and closes: full "seats
+// left" detail while browsing choices, just the table label once one is
+// picked and the box is closed.
+function tableOptionFullLabel(table, isCurrent) {
+  const seatsInfo = t('seats-left-template', { n: table.seatsLeft, capacity: table.capacity });
+  return `${table.label} — ${seatsInfo}${isCurrent ? ` ${t('table-option-current-suffix')}` : ''}`;
+}
+
+function showFullTableLabels() {
+  Array.from(guestTableSelect.options).forEach((opt) => {
+    if (opt.dataset.fullLabel) opt.textContent = opt.dataset.fullLabel;
+  });
+}
+
+function collapseSelectedTableLabel() {
+  const opt = guestTableSelect.options[guestTableSelect.selectedIndex];
+  if (opt?.dataset.shortLabel) opt.textContent = opt.dataset.shortLabel;
+}
+
+guestTableSelect.addEventListener('mousedown', showFullTableLabels);
+guestTableSelect.addEventListener('focus', showFullTableLabels);
+guestTableSelect.addEventListener('change', collapseSelectedTableLabel);
+guestTableSelect.addEventListener('blur', collapseSelectedTableLabel);
+
 async function populateTableSelect(selectedTableId) {
   guestTableSelect.innerHTML = `<option value="">${t('not-assigned')}</option>`;
   try {
@@ -75,10 +104,13 @@ async function populateTableSelect(selectedTableId) {
       const opt = document.createElement('option');
       opt.value = table.tableId;
       const isCurrent = table.tableId === selectedTableId;
-      opt.textContent = `${table.label} — ${table.seatsLeft}${isCurrent ? ' + this guest' : ''} seat(s) left`;
+      opt.dataset.shortLabel = table.label;
+      opt.dataset.fullLabel = tableOptionFullLabel(table, isCurrent);
+      opt.textContent = opt.dataset.fullLabel;
       opt.selected = isCurrent;
       guestTableSelect.appendChild(opt);
     }
+    collapseSelectedTableLabel();
   } catch {
     // Non-fatal — the select just stays at "Not assigned" plus whatever we already have.
   }
