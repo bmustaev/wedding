@@ -14,7 +14,8 @@
 
 .hall-map {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 20rem 20rem;
+  justify-content: center;
   grid-template-areas:
     "head head"
     "bride groom";
@@ -39,7 +40,7 @@
   justify-content: center;
   margin-bottom: 0.5rem;
 }
-.hall-head-zone .table-card {
+.hall-head-zone .hall-table-card {
   max-width: 16rem;
   width: 100%;
   border-color: var(--brass);
@@ -49,6 +50,7 @@
 .hall-tables-column {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 0.9rem;
 }
 
@@ -57,11 +59,14 @@
    --------------------------------------------------------------------- */
 
 .hall-table-card {
+  width: 100%;
+  max-width: 20rem;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 1rem 1.1rem;
   background: var(--paper-raised);
   transition: border-color 120ms ease, background 120ms ease;
+  box-sizing: border-box;
 }
 .hall-table-card.droppable-active {
   border-color: var(--brass);
@@ -164,14 +169,18 @@
 }
 .chip-copy-btn {
   flex-shrink: 0;
-  font-size: 0.72rem;
-  padding: 0.15em 0.5em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  padding: 0.3em;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: transparent;
   color: var(--ink-soft);
   cursor: pointer;
 }
+.chip-copy-btn svg { display: block; width: 14px; height: 14px; }
 .chip-copy-btn:hover { border-color: var(--brass); color: var(--ink); }
 
 /* ---------------------------------------------------------------------
@@ -256,5 +265,7 @@
       "bride"
       "groom";
   }
+  .hall-tables-column { align-items: center; }
+  .hall-table-card { max-width: 24rem; }
   .unassigned-tray { left: 0; }
 }

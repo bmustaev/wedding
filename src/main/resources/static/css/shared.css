@@ -134,6 +134,15 @@ textarea:focus-visible,
 
 .btn-sm { padding: 0.35em 0.75em; font-size: 0.82rem; }
 
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4em;
+  line-height: 0;
+}
+.btn-icon svg { display: block; }
+
 .lang-toggle {
   display: inline-flex;
   border: 1px solid var(--line);

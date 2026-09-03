@@ -5,7 +5,7 @@
 // only source of truth for capacity/side rules anyway.
 import * as api from './api.js';
 import { requireAuth, getRole, getUsername, getSide, isSuperAdmin, logout } from './auth.js';
-import { showError, clearBanner, escapeHtml, copyToClipboard } from './ui.js';
+import { showError, clearBanner, escapeHtml, copyToClipboard, ICON_COPY_LINK, ICON_CHECK } from './ui.js';
 import { initGuestEditor, openGuestEditor } from './guest-editor.js';
 import { applyStaticTranslations, initLanguageSwitcher, t } from './admin-i18n.js';
 
@@ -80,11 +80,13 @@ function tableCardHtml(table, isOwnSide) {
     ? `<button type="button" class="hall-table-remove" data-table-id="${table.id}">${t('remove-table-btn')}</button>`
     : '';
   // The head table is the couple's own — never a guest drop target (see
-  // wireTableCardEvents' `allowed` check), so it gets its own copy instead
-  // of "N of M seats left" / "Drop a guest here".
-  const seatsLine = isHead
-    ? t('head-table-reserved-label')
-    : t('seats-left-template', { n: table.seatsLeft, capacity: table.capacity });
+  // wireTableCardEvents' `allowed` check), so instead of a "N of M seats
+  // left" status line it just shows "Reserved for the couple" once, as
+  // the empty-chip-list placeholder (the same spot "Drop a guest here"
+  // occupies for other tables) rather than duplicating it in both spots.
+  const seatsLineHtml = isHead
+    ? ''
+    : `<div class="hall-table-seats ${table.seatsLeft === 0 ? 'full' : ''}">${t('seats-left-template', { n: table.seatsLeft, capacity: table.capacity })}</div>`;
   const emptyLabel = isHead ? t('head-table-reserved-label') : t('drop-guest-here');
   return `
     <div class="hall-table-card" data-table-id="${table.id}" data-side="${table.side}">
@@ -92,13 +94,13 @@ function tableCardHtml(table, isOwnSide) {
         <h3>${escapeHtml(table.label)}</h3>
         ${removeBtn}
       </div>
-      <div class="hall-table-seats ${table.seatsLeft === 0 ? 'full' : ''}">${seatsLine}</div>
+      ${seatsLineHtml}
       <div class="hall-chip-list" data-table-id="${table.id}" data-empty-label="${emptyLabel}">${chips}</div>
     </div>`;
 }
 
 function copyBtnHtml(guestId) {
-  return `<button type="button" class="chip-copy-btn" draggable="true" data-guest-id="${guestId}">${t('copy-link-btn')}</button>`;
+  return `<button type="button" class="chip-copy-btn" draggable="true" data-guest-id="${guestId}" title="${escapeHtml(t('copy-link-btn'))}" aria-label="${escapeHtml(t('copy-link-btn'))}">${ICON_COPY_LINK}</button>`;
 }
 
 function guestChipHtml(guest) {
@@ -276,8 +278,11 @@ function wireCopyButtons() {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       try {
-        const guest = await api.getGuest(btn.dataset.guestId);
-        await copyToClipboard(guest.invitationUrl, btn, t('copied'));
+        // Passed straight through as a promise (not awaited here) so
+        // copyToClipboard can still call the Clipboard API synchronously —
+        // see its doc comment in ui.js for why that matters.
+        const urlPromise = api.getGuest(btn.dataset.guestId).then((guest) => guest.invitationUrl);
+        await copyToClipboard(urlPromise, btn, ICON_CHECK);
       } catch (err) {
         showError(hallError, err);
       }

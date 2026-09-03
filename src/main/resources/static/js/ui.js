@@ -5,6 +5,13 @@
 // admin-i18n.js — everything else stays audience-agnostic.
 import { t } from './admin-i18n.js';
 
+// Inline icons for compact row-action buttons (no icon font/library in this
+// no-build-step frontend — see README.md). currentColor lets .btn's color
+// rules keep applying.
+export const ICON_COPY_LINK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.42 1.42"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.41-1.41"/></svg>';
+export const ICON_EDIT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+export const ICON_CHECK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+
 /** Renders the backend's {message, details} error shape into a banner element. */
 export function showError(container, err) {
   const message = err?.message || 'Something went wrong.';
@@ -83,19 +90,45 @@ export function closeModal(modalEl) {
 }
 
 /**
- * Copies `text`, briefly swapping `btn`'s label to `copiedLabel` as feedback.
+ * Copies `text` — a string, or (when the caller doesn't have it yet, e.g.
+ * still fetching it from the server) a Promise that resolves to one —
+ * briefly swapping `btn`'s label to `copiedLabel` as feedback.
+ *
  * navigator.clipboard is only defined in a secure context (HTTPS or
  * localhost) — this app is sometimes deployed over plain HTTP, where it's
  * undefined and would otherwise fail silently (an unawaited rejected
- * promise). Falls back to the legacy execCommand('copy') path via a
- * temporary off-screen textarea, and throws if both approaches fail so
+ * promise).
+ *
+ * Clipboard writes are gated on the click's "user activation", which is
+ * consumed by any async work awaited beforehand — so a caller that has to
+ * `await` a network call before it knows the text would silently fail here
+ * (and fall through to execCommand, which fails too, for the same reason).
+ * navigator.clipboard.write() sidesteps that: it accepts a ClipboardItem
+ * whose value is itself a Promise, so the write() call — the part that
+ * needs the activation — happens synchronously even though the text isn't
+ * resolved yet. Callers should therefore pass the not-yet-awaited promise
+ * straight through rather than awaiting it first.
+ *
+ * Falls back to writeText, then the legacy execCommand('copy') path via a
+ * temporary off-screen textarea, and throws if every approach fails so
  * callers can surface an error instead of the button just doing nothing.
  */
 export async function copyToClipboard(text, btn, copiedLabel = 'Copied') {
+  const textPromise = Promise.resolve(text);
   let copied = false;
-  if (navigator.clipboard?.writeText) {
+  if (navigator.clipboard?.write && window.ClipboardItem) {
     try {
-      await navigator.clipboard.writeText(text);
+      const blobPromise = textPromise.then((value) => new Blob([value], { type: 'text/plain' }));
+      await navigator.clipboard.write([new ClipboardItem({ 'text/plain': blobPromise })]);
+      copied = true;
+    } catch {
+      // fall through to the paths below
+    }
+  }
+  const value = await textPromise;
+  if (!copied && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value);
       copied = true;
     } catch {
       // fall through to the legacy path below
@@ -103,7 +136,7 @@ export async function copyToClipboard(text, btn, copiedLabel = 'Copied') {
   }
   if (!copied) {
     const textarea = document.createElement('textarea');
-    textarea.value = text;
+    textarea.value = value;
     textarea.style.position = 'fixed';
     textarea.style.top = '-1000px';
     textarea.style.left = '-1000px';
@@ -121,9 +154,9 @@ export async function copyToClipboard(text, btn, copiedLabel = 'Copied') {
   if (!copied) {
     throw new Error('Copy failed — copy the link manually.');
   }
-  const original = btn.textContent;
-  btn.textContent = copiedLabel;
-  setTimeout(() => { btn.textContent = original; }, 1500);
+  const original = btn.innerHTML;
+  btn.innerHTML = copiedLabel;
+  setTimeout(() => { btn.innerHTML = original; }, 1500);
 }
 
 export function escapeHtml(str) {

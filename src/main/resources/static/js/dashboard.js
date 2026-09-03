@@ -4,6 +4,7 @@ import { requireAuth, getRole, getUsername, isSuperAdmin, logout } from './auth.
 import {
   showError, clearBanner, setLoading, setEmpty,
   renderPager, escapeHtml, copyToClipboard,
+  ICON_COPY_LINK, ICON_EDIT, ICON_CHECK,
 } from './ui.js';
 import { initGuestEditor, openGuestEditor } from './guest-editor.js';
 import { applyStaticTranslations, initLanguageSwitcher, t } from './admin-i18n.js';
@@ -76,8 +77,8 @@ function renderGuestsTable(pageResponse) {
       <td>${g.tableNumber != null ? t('table-n', { n: g.tableNumber }) : '—'}</td>
       <td>${g.firstViewedAt ? t('status-viewed') : t('status-not-viewed')}</td>
       <td class="cell-actions">
-        <button type="button" class="btn btn-sm copy-link-btn" data-url="${escapeHtml(g.invitationUrl)}">${t('copy-link-btn')}</button>
-        <button type="button" class="btn btn-sm edit-guest-btn">${t('edit-btn')}</button>
+        <button type="button" class="btn btn-sm btn-icon copy-link-btn" data-url="${escapeHtml(g.invitationUrl)}" title="${escapeHtml(t('copy-link-btn'))}" aria-label="${escapeHtml(t('copy-link-btn'))}">${ICON_COPY_LINK}</button>
+        <button type="button" class="btn btn-sm btn-icon edit-guest-btn" title="${escapeHtml(t('edit-btn'))}" aria-label="${escapeHtml(t('edit-btn'))}">${ICON_EDIT}</button>
       </td>
     </tr>
   `).join('');
@@ -94,7 +95,7 @@ function renderGuestsTable(pageResponse) {
 
   guestsContainer.querySelectorAll('.edit-guest-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
-      const id = e.target.closest('tr').dataset.id;
+      const id = e.currentTarget.closest('tr').dataset.id;
       openGuestEditor(id);
     });
   });
@@ -102,7 +103,7 @@ function renderGuestsTable(pageResponse) {
   guestsContainer.querySelectorAll('.copy-link-btn').forEach((btn) => {
     btn.addEventListener('click', async (e) => {
       try {
-        await copyToClipboard(e.target.dataset.url, e.target, t('copied'));
+        await copyToClipboard(e.currentTarget.dataset.url, e.currentTarget, ICON_CHECK);
       } catch (err) {
         showError(guestsError, err);
       }
