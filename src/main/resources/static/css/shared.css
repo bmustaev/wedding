@@ -623,4 +623,7 @@ tbody tr:hover { background: var(--line-soft); }
   }
   .sidebar-footer #sidebar-username { display: none; }
   .content { padding: 1.5rem 1.25rem; }
+  .table-wrap { overflow-x: auto; }
+  .table-wrap table { width: max-content; min-width: 100%; }
+  .cell-actions { white-space: nowrap; }
 }
