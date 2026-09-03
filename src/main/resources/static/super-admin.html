@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admins — Wedding Admin</title>
+  <link rel="stylesheet" href="css/shared.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">Wedding Admin</div>
+      <div class="sidebar-role">Super admin</div>
+
+      <nav class="sidebar-nav">
+        <button type="button" id="nav-back">&larr; Back to my dashboard</button>
+        <button type="button" data-target="admins" class="active">Admins</button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="field-hint" id="sidebar-username" style="margin-bottom:0.6em;"></div>
+        <button type="button" class="btn btn-sm" id="logout-btn">Sign out</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <!-- ============================= ADMIN LIST ============================= -->
+      <section data-panel="admins" class="active">
+        <div class="content-header">
+          <div>
+            <h1>Admins</h1>
+            <p class="field-hint" style="margin:0;">Every admin's own guest list stays private from every other admin — you can view, but not edit, from here.</p>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn btn-primary" id="add-admin-btn">New admin</button>
+          </div>
+        </div>
+
+        <div id="admins-error" class="banner banner-error" hidden></div>
+        <div id="admins-container"></div>
+      </section>
+
+      <!-- ============================= ADMIN'S GUESTS (drill-down) ============================= -->
+      <section data-panel="admin-guests">
+        <div class="content-header">
+          <div>
+            <h1 id="admin-guests-title">Guests</h1>
+            <p class="field-hint" style="margin:0;">Read-only view.</p>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn btn-sm" id="back-to-admins-btn">&larr; Back to admins</button>
+          </div>
+        </div>
+
+        <div id="admin-guests-error" class="banner banner-error" hidden></div>
+        <div id="admin-guests-container"></div>
+        <div id="admin-guests-pager" class="pager"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ============================= NEW ADMIN MODAL ============================= -->
+  <div class="modal-backdrop" id="admin-modal-backdrop" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h2>New admin</h2>
+        <button type="button" class="modal-close" id="admin-modal-close" aria-label="Close">&times;</button>
+      </div>
+
+      <div id="admin-modal-error" class="banner banner-error" hidden></div>
+
+      <form id="admin-form">
+        <div class="field">
+          <label for="admin-username">Username</label>
+          <input type="text" id="admin-username" minlength="3" maxlength="64" required />
+        </div>
+        <div class="field">
+          <label for="admin-side">Side</label>
+          <select id="admin-side" required>
+            <option value="BRIDE">Bride</option>
+            <option value="GROOM">Groom</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="admin-password">Password</label>
+          <input type="password" id="admin-password" minlength="8" maxlength="128" required />
+          <p class="field-hint">At least 8 characters. Share it with them directly — it won't be shown again here.</p>
+        </div>
+      </form>
+
+      <div class="modal-footer">
+        <button type="button" class="btn" id="admin-cancel-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="admin-save-btn">Create admin</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/super-admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+/* =====================================================================
+   hall.html — the wedding-hall seating map. Head table centered at top,
+   bride tables in a left column, groom tables in a right column, and a
+   docked bottom tray of unassigned guests to drag from. Uses the native
+   HTML5 drag-and-drop API — no library.
+   ===================================================================== */
+
+.hall-content {
+  padding-bottom: 8rem; /* leave room for the docked tray */
+}
+
+.hall-map {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "head head"
+    "bride groom";
+  gap: 1.5rem 2rem;
+  margin-top: 1rem;
+}
+
+.hall-head-zone { grid-area: head; }
+.hall-bride-zone { grid-area: bride; }
+.hall-groom-zone { grid-area: groom; }
+
+.hall-side-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.9rem;
+}
+.hall-side-header h2 { margin: 0; }
+
+.hall-head-zone {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+.hall-head-zone .table-card {
+  max-width: 16rem;
+  width: 100%;
+  border-color: var(--brass);
+  background: var(--brass-soft);
+}
+
+.hall-tables-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+/* ---------------------------------------------------------------------
+   Table card — drop zone
+   --------------------------------------------------------------------- */
+
+.hall-table-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  background: var(--paper-raised);
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.hall-table-card.droppable-active {
+  border-color: var(--brass);
+  background: var(--brass-soft);
+}
+.hall-table-card.droppable-denied {
+  border-color: var(--line);
+  background: var(--paper);
+  opacity: 0.6;
+}
+
+.hall-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.6em;
+}
+.hall-table-header h3 { margin: 0; }
+.hall-table-remove {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.1em 0.3em;
+}
+.hall-table-remove:hover { color: var(--danger); }
+
+.hall-table-seats {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  margin-bottom: 0.6em;
+}
+.hall-table-seats.full { color: var(--danger); }
+
+.hall-chip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  min-height: 2.5rem;
+}
+.hall-chip-list:empty::after {
+  content: 'Drop a guest here';
+  display: block;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  font-style: italic;
+  padding: 0.4em 0;
+}
+
+.hall-add-table-btn {
+  align-self: flex-start;
+}
+
+/* ---------------------------------------------------------------------
+   Guest chip — draggable
+   --------------------------------------------------------------------- */
+
+.guest-chip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.45em 0.7em;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  font-size: 0.85rem;
+}
+.guest-chip.own {
+  cursor: grab;
+  border-color: var(--brass);
+  user-select: none; /* prevent text selection from hijacking the drag gesture */
+  -webkit-user-select: none;
+  -webkit-user-drag: element; /* Safari: be explicit that this div itself is the drag source */
+}
+.guest-chip.own:active { cursor: grabbing; }
+.guest-chip.reserved {
+  color: var(--ink-soft);
+  font-style: italic;
+  cursor: default;
+}
+.guest-chip.dragging { opacity: 0.4; }
+.guest-chip .party-size {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------------
+   Docked unassigned-guests tray
+   --------------------------------------------------------------------- */
+
+.unassigned-tray {
+  position: fixed;
+  left: var(--sidebar-width);
+  right: 0;
+  bottom: 0;
+  background: var(--paper-raised);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -2px 8px rgba(31, 42, 36, 0.06);
+  z-index: 20;
+  transition: transform 200ms ease;
+}
+.unassigned-tray.collapsed { transform: translateY(calc(100% - 2.6rem)); }
+
+.unassigned-tray-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.7em 1.5rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--line-soft);
+}
+.unassigned-tray-header h3 { margin: 0; font-size: 0.95rem; }
+
+.unassigned-tray-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6em;
+  padding: 1rem 1.5rem;
+  max-height: 9rem;
+  overflow-y: auto;
+}
+.unassigned-tray-body.droppable-active {
+  background: var(--brass-soft);
+}
+.unassigned-tray-body .guest-chip {
+  width: auto;
+}
+.unassigned-tray-body:empty::after {
+  content: 'Everyone is seated — nice work.';
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+@media (max-width: 900px) {
+  .hall-map {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "head"
+      "bride"
+      "groom";
+  }
+  .unassigned-tray { left: 0; }
+}

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign in — Wedding Admin</title>
+  <link rel="stylesheet" href="css/shared.css" />
+</head>
+<body>
+  <div class="auth-shell">
+    <div class="auth-card">
+      <h1>Wedding Admin</h1>
+      <p class="auth-subtitle">Sign in to manage guests, seating, and invitations.</p>
+
+      <div id="error-banner" class="banner banner-error" hidden></div>
+
+      <form id="login-form" novalidate>
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" autocomplete="username" required />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" autocomplete="current-password" required />
+        </div>
+        <button type="submit" class="btn btn-primary" id="login-submit">Sign in</button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="js/login.js"></script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>You're invited</title>
+  <link rel="stylesheet" href="css/shared.css" />
+  <link rel="stylesheet" href="css/invitation.css" />
+</head>
+<body>
+  <div class="invite-shell">
+    <div class="invite-card">
+
+      <div id="invite-loading" class="loading-state">
+        <span class="spinner"></span>Opening your invitation…
+      </div>
+
+      <div id="invite-error-state" class="invite-error-page" hidden>
+        <h1>This link isn't valid</h1>
+        <p style="color:var(--ink-soft);">Double-check the link you were sent, or reach out to the couple.</p>
+      </div>
+
+      <div id="invite-content" hidden>
+        <div class="invite-frame">
+          <div class="invite-frame-inner">
+            <h1 class="invite-name" id="invite-name"></h1>
+            <div class="invite-divider"><span>&#10022;</span></div>
+            <p class="invite-greeting" id="invite-greeting"></p>
+            <ul class="invite-members" id="invite-members" hidden></ul>
+            <div class="invite-table" id="invite-table" hidden></div>
+          </div>
+        </div>
+
+        <div class="invite-section">
+          <h2>Share your photos &amp; videos</h2>
+          <p class="invite-section-sub">We'd love to see the day through your eyes.</p>
+
+          <div id="upload-error" class="banner banner-error" hidden></div>
+
+          <div class="upload-group">
+            <div class="upload-group-header">
+              <h3>Photos</h3>
+              <span class="upload-remaining" id="photos-remaining"></span>
+            </div>
+            <div class="upload-input-row">
+              <input type="file" id="photo-input" accept="image/*" />
+            </div>
+            <div class="gallery-grid" id="photo-gallery"></div>
+          </div>
+
+          <div class="upload-group">
+            <div class="upload-group-header">
+              <h3>Videos</h3>
+              <span class="upload-remaining" id="videos-remaining"></span>
+            </div>
+            <div class="upload-input-row">
+              <input type="file" id="video-input" accept="video/*" />
+            </div>
+            <div class="gallery-grid" id="video-gallery"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module" src="js/invitation.js"></script>
+</body>
+</html>

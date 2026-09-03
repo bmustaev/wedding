@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard — Wedding Admin</title>
+  <link rel="stylesheet" href="css/shared.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">Wedding Admin</div>
+      <div class="sidebar-role" id="sidebar-role">—</div>
+
+      <nav class="sidebar-nav">
+        <button type="button" data-target="guests" class="active">Guests</button>
+        <button type="button" id="nav-hall">Hall</button>
+        <button type="button" data-target="import">Import</button>
+        <button type="button" id="nav-super-admin" hidden>Admins</button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="field-hint" id="sidebar-username" style="margin-bottom:0.6em;"></div>
+        <button type="button" class="btn btn-sm" id="logout-btn">Sign out</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <!-- ============================= GUESTS ============================= -->
+      <section data-panel="guests" class="active">
+        <div class="content-header">
+          <div>
+            <h1>Guests</h1>
+            <p class="field-hint" style="margin:0;">Your invitation list — only guests you added are shown here.</p>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn btn-primary" id="add-guest-btn">Add guest</button>
+          </div>
+        </div>
+
+        <div id="guests-error" class="banner banner-error" hidden></div>
+        <div id="guests-container"></div>
+        <div id="guests-pager" class="pager"></div>
+      </section>
+
+      <!-- ============================= IMPORT ============================= -->
+      <section data-panel="import">
+        <div class="content-header">
+          <div>
+            <h1>Import guests</h1>
+            <p class="field-hint" style="margin:0;">Upload a .txt file — one guest per line. See format below.</p>
+          </div>
+        </div>
+
+        <div class="field" style="max-width: 28rem;">
+          <label for="import-file">Guest list (.txt)</label>
+          <input type="file" id="import-file" accept=".txt,text/plain" />
+          <p class="field-hint">
+            One guest per line: <code>Name</code>, or <code>Name;PartySize</code>, or
+            <code>Name;PartySize;Member1,Member2</code>.
+          </p>
+        </div>
+        <button type="button" class="btn btn-primary" id="import-submit-btn">Upload</button>
+
+        <div id="import-error" class="banner banner-error" hidden style="margin-top:1.2em;"></div>
+        <div id="import-result" style="margin-top:1.5em;"></div>
+
+        <h2 style="margin-top:2.5rem;">Past imports</h2>
+        <div id="import-history"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ============================= GUEST FORM MODAL ============================= -->
+  <div class="modal-backdrop" id="guest-modal-backdrop" hidden>
+    <div class="modal" style="max-width:38rem;">
+      <div class="modal-header">
+        <h2 id="guest-modal-title">Add guest</h2>
+        <button type="button" class="modal-close" id="guest-modal-close" aria-label="Close">&times;</button>
+      </div>
+
+      <div id="guest-modal-error" class="banner banner-error" hidden></div>
+
+      <form id="guest-form">
+        <div class="field">
+          <label for="guest-display-name">Display name</label>
+          <input type="text" id="guest-display-name" required />
+          <p class="field-hint">Shown on the invitation, e.g. "Jane Doe" or "The Miller Family"</p>
+        </div>
+
+        <div class="checkbox-row field">
+          <input type="checkbox" id="guest-is-group" />
+          <label for="guest-is-group" style="margin:0;">This is a group or family</label>
+        </div>
+
+        <div class="form-row">
+          <div class="field" id="guest-party-size-field" hidden>
+            <label for="guest-party-size">Party size</label>
+            <input type="number" id="guest-party-size" min="1" value="1" />
+          </div>
+          <div class="field">
+            <label for="guest-language">Language</label>
+            <input type="text" id="guest-language" value="en" style="max-width:6rem;" />
+          </div>
+        </div>
+
+        <div class="field" id="guest-members-field" hidden>
+          <label>Group member names</label>
+          <div id="guest-members-list"></div>
+          <button type="button" class="btn btn-sm" id="guest-add-member-btn">Add member</button>
+        </div>
+
+        <div class="field">
+          <label for="guest-greeting">Greeting message</label>
+          <textarea id="guest-greeting" placeholder="So excited to celebrate with you!"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="guest-table">Table</label>
+          <select id="guest-table">
+            <option value="">Not assigned</option>
+          </select>
+        </div>
+
+        <div class="field" id="guest-link-field" hidden>
+          <label>Invitation link</label>
+          <div style="display:flex; gap:0.5em;">
+            <input type="text" id="guest-invitation-url" readonly />
+            <button type="button" class="btn btn-sm" id="guest-copy-link-btn">Copy</button>
+          </div>
+        </div>
+      </form>
+
+      <div id="guest-media-section" hidden style="margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid var(--line-soft);">
+        <h3>Media</h3>
+        <div id="guest-media-allowance" class="media-allowance"></div>
+        <div id="guest-media-grid" class="media-grid"></div>
+        <div style="display:flex; gap:0.6em; flex-wrap:wrap;">
+          <label class="btn btn-sm" for="guest-upload-photo" style="margin:0;">Add photo
+            <input type="file" id="guest-upload-photo" accept="image/*" hidden />
+          </label>
+          <label class="btn btn-sm" for="guest-upload-video" style="margin:0;">Add video
+            <input type="file" id="guest-upload-video" accept="video/*" hidden />
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" id="guest-delete-btn" hidden>Delete guest</button>
+        <button type="button" class="btn" id="guest-cancel-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="guest-save-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="refresh" content="0; url=login.html" />
+  <title>Wedding Admin</title>
+  <link rel="stylesheet" href="css/shared.css" />
+</head>
+<body>
+  <div class="auth-shell">
+    <p class="field-hint">Redirecting…</p>
+  </div>
+
+  <script type="module">
+    // login.html itself already redirects straight to dashboard.html if a
+    // valid session exists (see login.js), so sending everyone here first
+    // is enough to get both "logged in" and "not logged in" visitors to
+    // the right place — no need to duplicate that check in this file.
+    location.replace('login.html');
+  </script>
+</body>
+</html>

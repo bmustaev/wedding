@@ -1,0 +1,590 @@
+/* =====================================================================
+   Wedding Invitation Platform — shared styles
+   Design system: fine-stationery ink/wine/brass palette, hairline rules
+   instead of card shadows, Fraunces for display type + Public Sans for
+   body/UI. See invitation.css for the guest-facing page's own additions.
+   ===================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Public+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Color */
+  --ink: #1f2a24;
+  --ink-soft: #4a5750;
+  --paper: #fbf8f3;
+  --paper-raised: #ffffff;
+  --wine: #7a2e2e;
+  --wine-dark: #5e2222;
+  --brass: #b3924f;
+  --brass-soft: #e7dcc2;
+  --line: #ddd5c7;
+  --line-soft: #ece6da;
+  --danger: #a13b2c;
+  --danger-bg: #f7e9e5;
+  --success: #3c6e4f;
+  --success-bg: #e9f2eb;
+
+  /* Type */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Layout */
+  --radius: 3px;
+  --sidebar-width: 15rem;
+  --content-max: 72rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--paper);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 0 0 0.5em;
+  color: var(--ink);
+}
+
+h1 { font-size: 1.9rem; }
+h2 { font-size: 1.4rem; }
+h3 { font-size: 1.1rem; }
+
+p { margin: 0 0 1em; }
+
+a {
+  color: var(--wine);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+/* Focus visibility — always keep this, never remove it */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--wine);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ---------------------------------------------------------------------
+   Buttons
+   --------------------------------------------------------------------- */
+
+.btn {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.55em 1.1em;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--paper-raised);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+  line-height: 1.2;
+}
+.btn:hover { border-color: var(--brass); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--wine);
+  border-color: var(--wine);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--wine-dark); border-color: var(--wine-dark); }
+
+.btn-danger {
+  background: var(--paper-raised);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.btn-danger:hover { background: var(--danger-bg); }
+
+.btn-text {
+  border: none;
+  background: none;
+  padding: 0.3em 0.4em;
+  color: var(--wine);
+  font-weight: 600;
+}
+.btn-text:hover { text-decoration: underline; background: none; }
+
+.btn-sm { padding: 0.35em 0.75em; font-size: 0.82rem; }
+
+/* ---------------------------------------------------------------------
+   Forms
+   --------------------------------------------------------------------- */
+
+label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.35em;
+  color: var(--ink-soft);
+}
+
+.field { margin-bottom: 1.1em; }
+
+.field-hint {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  margin-top: 0.3em;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="number"],
+input[type="file"],
+select,
+textarea {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  padding: 0.6em 0.7em;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--brass);
+}
+
+textarea { resize: vertical; min-height: 5rem; }
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+.checkbox-row label { margin: 0; }
+
+.form-row {
+  display: flex;
+  gap: 1em;
+}
+.form-row > .field { flex: 1; }
+
+.member-input-row {
+  display: flex;
+  gap: 0.5em;
+  margin-bottom: 0.5em;
+}
+.member-input-row input { flex: 1; }
+
+/* ---------------------------------------------------------------------
+   App shell — sidebar + content
+   --------------------------------------------------------------------- */
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  background: var(--paper-raised);
+  border-right: 1px solid var(--line);
+  padding: 1.5rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-brand {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  margin-bottom: 0.1em;
+}
+.sidebar-role {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  margin-bottom: 1.75rem;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.sidebar-nav button {
+  text-align: left;
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  padding: 0.55em 0.6em;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.sidebar-nav button:hover { background: var(--line-soft); color: var(--ink); }
+.sidebar-nav button.active {
+  background: var(--brass-soft);
+  color: var(--ink);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.content {
+  flex: 1;
+  padding: 2rem 2.5rem;
+  max-width: var(--content-max);
+}
+
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.content-header .actions {
+  display: flex;
+  gap: 0.6em;
+}
+
+section[data-panel] { display: none; }
+section[data-panel].active { display: block; }
+
+/* ---------------------------------------------------------------------
+   Tables (the "ledger")
+   --------------------------------------------------------------------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--paper-raised);
+}
+th, td {
+  text-align: left;
+  padding: 0.7em 0.8em;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 0.9rem;
+}
+th {
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  border-bottom: 1px solid var(--line);
+}
+tbody tr:hover { background: var(--line-soft); }
+
+.table-wrap {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.table-wrap table { border: none; }
+.table-wrap tbody tr:last-child td { border-bottom: none; }
+
+.cell-actions {
+  display: flex;
+  gap: 0.4em;
+  justify-content: flex-end;
+}
+
+/* ---------------------------------------------------------------------
+   Badges / status
+   --------------------------------------------------------------------- */
+
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2em 0.6em;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+}
+.badge-active { border-color: var(--success); color: var(--success); background: var(--success-bg); }
+.badge-inactive { border-color: var(--line); color: var(--ink-soft); }
+.badge-super { border-color: var(--brass); color: #8a6d1f; background: var(--brass-soft); }
+
+/* ---------------------------------------------------------------------
+   Messages: error banner, empty state, loading
+   --------------------------------------------------------------------- */
+
+.banner {
+  padding: 0.8em 1em;
+  border-radius: var(--radius);
+  font-size: 0.88rem;
+  margin-bottom: 1.2em;
+  border: 1px solid transparent;
+}
+.banner-error {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.banner-error ul { margin: 0.4em 0 0; padding-left: 1.2em; }
+.banner-success {
+  background: var(--success-bg);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.empty-state {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--ink-soft);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+}
+.empty-state p:first-child {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--ink);
+}
+
+.loading-state {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+.spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border: 2px solid var(--line);
+  border-top-color: var(--wine);
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+  vertical-align: -0.15em;
+  margin-right: 0.5em;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------------------------------------------------------------------
+   Pagination
+   --------------------------------------------------------------------- */
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75em;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+/* ---------------------------------------------------------------------
+   Modal / dialog
+   --------------------------------------------------------------------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 42, 36, 0.45);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 3rem 1rem;
+  overflow-y: auto;
+  z-index: 50;
+}
+.modal-backdrop[hidden] { display: none; }
+
+.modal {
+  background: var(--paper-raised);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  width: 100%;
+  max-width: 34rem;
+  padding: 1.75rem 2rem;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+}
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--ink-soft);
+  padding: 0.1em 0.3em;
+}
+.modal-close:hover { color: var(--ink); }
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6em;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+/* ---------------------------------------------------------------------
+   Media grid (admin-side, inside guest edit modal)
+   --------------------------------------------------------------------- */
+
+.media-allowance {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  margin-bottom: 0.75em;
+}
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: 0.6em;
+  margin-bottom: 0.5em;
+}
+.media-tile {
+  position: relative;
+  aspect-ratio: 1;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--line-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-align: center;
+  padding: 0.3em;
+}
+.media-tile button {
+  position: absolute;
+  top: 0.25em;
+  right: 0.25em;
+  background: rgba(31, 42, 36, 0.75);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 1.3em;
+  height: 1.3em;
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------------
+   Seating
+   --------------------------------------------------------------------- */
+
+.table-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 1rem;
+}
+.table-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.2rem;
+  background: var(--paper-raised);
+}
+.table-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.6em;
+}
+.table-card-header h3 { margin: 0; }
+.table-seats-left {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+.table-seats-left.full { color: var(--danger); }
+.table-guest-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.85rem;
+}
+.table-guest-list li {
+  padding: 0.3em 0;
+  border-top: 1px solid var(--line-soft);
+}
+.table-guest-list li:first-child { border-top: none; }
+.table-guest-list li.reserved {
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+/* ---------------------------------------------------------------------
+   Import results
+   --------------------------------------------------------------------- */
+
+.import-row-ok { color: var(--success); }
+.import-row-error { color: var(--danger); }
+
+/* ---------------------------------------------------------------------
+   Login page (standalone, no sidebar)
+   --------------------------------------------------------------------- */
+
+.auth-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+.auth-card {
+  width: 100%;
+  max-width: 24rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 2.25rem 2rem;
+}
+.auth-card h1 {
+  text-align: center;
+  margin-bottom: 0.2em;
+}
+.auth-subtitle {
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  margin-bottom: 1.75rem;
+}
+.auth-card .btn-primary { width: 100%; margin-top: 0.5em; }
+
+@media (max-width: 720px) {
+  .app-shell { flex-direction: column; }
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    padding: 1rem;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+  .sidebar-brand, .sidebar-role, .sidebar-footer { display: none; }
+  .sidebar-nav { flex-direction: row; overflow-x: auto; }
+  .content { padding: 1.5rem 1.25rem; }
+}

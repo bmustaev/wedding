@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: wedding
+  datasource:
+    url: jdbc:mariadb://localhost:3306/wedding?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci
+    username: root
+    password: root
+    driver-class-name: org.mariadb.jdbc.Driver
+  # Optional: JPA/Hibernate settings (if you are using Spring Data JPA)
+  jpa:
+    database-platform: org.hibernate.dialect.MariaDBDialect
+    hibernate:
+      # Schema is owned by schema.sql/data.sql, not by Hibernate.
+      # "validate" catches drift between entities and the real schema
+      # without ever letting the app mutate DDL itself.
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        type:
+          preferred_uuid_jdbc_type: CHAR
+  sql:
+    init:
+      mode: always
+      separator: "$$"
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 30MB
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: always
+    include-exception: true
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    # Replace with your actual project base package
+    uz.bobnoza.wedding: DEBUG
+#test-password-123
+app:
+  jwt:
+    # Generate a real 256-bit+ secret for production; this is a placeholder.
+    secret: ${JWT_SECRET:REPLACE_WITH_A_LONG_RANDOM_SECRET_AT_LEAST_32_BYTES}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:480}
+  media:
+    max-photos-per-guest: 15
+    max-videos-per-guest: 4
+    storage-dir: ${MEDIA_STORAGE_DIR:./media-storage}
+  seating:
+    default-table-capacity: 12
+  invitation:
+    base-url: ${INVITATION_BASE_URL:http://localhost:8080/i}
+
