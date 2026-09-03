@@ -1,20 +1,18 @@
 /* =====================================================================
    hall.html — the wedding-hall seating map. Head table centered at top,
    bride tables in a left column, groom tables in a right column, and a
-   docked bottom tray of unassigned guests to drag from. Uses the native
-   HTML5 drag-and-drop API — no library.
+   rail of unassigned guests to drag from, next to the tables. Docks to
+   the bottom of the screen instead on narrow viewports (see the
+   max-width:900px block), where there's no room for a fourth column.
+   Uses the native HTML5 drag-and-drop API — no library.
    ===================================================================== */
-
-.hall-content {
-  padding-bottom: 8rem; /* leave room for the docked tray */
-}
 
 .hall-map {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 16rem;
   grid-template-areas:
-    "head head"
-    "bride groom";
+    "head head head"
+    "bride groom unassigned";
   gap: 1.5rem 2rem;
   margin-top: 1rem;
 }
@@ -147,47 +145,61 @@
   color: var(--ink-soft);
   flex-shrink: 0;
 }
+.guest-chip-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  overflow: hidden;
+  min-width: 0;
+}
+.guest-chip-info > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chip-copy-btn {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  padding: 0.15em 0.5em;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.chip-copy-btn:hover { border-color: var(--brass); color: var(--ink); }
 
 /* ---------------------------------------------------------------------
-   Docked unassigned-guests tray
+   Unassigned-guests rail (bottom tray on narrow screens — see below)
    --------------------------------------------------------------------- */
 
 .unassigned-tray {
-  position: fixed;
-  left: var(--sidebar-width);
-  right: 0;
-  bottom: 0;
+  grid-area: unassigned;
+  align-self: start;
   background: var(--paper-raised);
-  border-top: 1px solid var(--line);
-  box-shadow: 0 -2px 8px rgba(31, 42, 36, 0.06);
-  z-index: 20;
-  transition: transform 200ms ease;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
 }
-.unassigned-tray.collapsed { transform: translateY(calc(100% - 2.6rem)); }
 
 .unassigned-tray-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.7em 1.5rem;
-  cursor: pointer;
+  padding: 0.7em 1rem;
   border-bottom: 1px solid var(--line-soft);
 }
 .unassigned-tray-header h3 { margin: 0; font-size: 0.95rem; }
+#unassigned-tray-caret { display: none; } /* collapse is a narrow-screen-only affordance */
 
 .unassigned-tray-body {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.6em;
-  padding: 1rem 1.5rem;
-  max-height: 9rem;
-  overflow-y: auto;
+  padding: 1rem;
+  max-height: none;
 }
 .unassigned-tray-body.droppable-active {
   background: var(--brass-soft);
-}
-.unassigned-tray-body .guest-chip {
-  width: auto;
 }
 .unassigned-tray-body:empty::after {
   content: 'Everyone is seated — nice work.';
@@ -197,6 +209,9 @@
 }
 
 @media (max-width: 900px) {
+  .hall-content {
+    padding-bottom: 8rem; /* leave room for the docked tray */
+  }
   .hall-map {
     grid-template-columns: 1fr;
     grid-template-areas:
@@ -204,5 +219,35 @@
       "bride"
       "groom";
   }
+  .unassigned-tray {
+    grid-area: unset;
+    position: fixed;
+    left: var(--sidebar-width);
+    right: 0;
+    bottom: 0;
+    border: none;
+    border-radius: 0;
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -2px 8px rgba(31, 42, 36, 0.06);
+    z-index: 20;
+    transition: transform 200ms ease;
+  }
+  .unassigned-tray.collapsed { transform: translateY(calc(100% - 2.6rem)); }
+  .unassigned-tray-header { cursor: pointer; padding: 0.7em 1.5rem; }
+  #unassigned-tray-caret { display: inline; }
+  .unassigned-tray-body {
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-height: 9rem;
+    overflow-y: auto;
+    padding: 1rem 1.5rem;
+  }
+  .unassigned-tray-body .guest-chip { width: auto; }
+}
+
+@media (max-width: 720px) {
+  /* .sidebar stacks on top of the content here (see shared.css) instead
+     of sitting in a fixed-width left column — the tray should span full
+     width to match. */
   .unassigned-tray { left: 0; }
 }

@@ -5,7 +5,7 @@
 // only source of truth for capacity/side rules anyway.
 import * as api from './api.js';
 import { requireAuth, getRole, getUsername, getSide, isSuperAdmin, logout } from './auth.js';
-import { showError, clearBanner, escapeHtml } from './ui.js';
+import { showError, clearBanner, escapeHtml, copyToClipboard } from './ui.js';
 import { initGuestEditor, openGuestEditor } from './guest-editor.js';
 
 requireAuth();
@@ -61,6 +61,7 @@ function renderHall(view) {
   renderUnassignedTray(view.unassignedGuests);
   wireTableCardEvents();
   wireAddTableButtons();
+  wireCopyButtons();
 }
 
 function addTableButtonHtml(side) {
@@ -84,14 +85,21 @@ function tableCardHtml(table, isOwnSide) {
     </div>`;
 }
 
+function copyBtnHtml(guestId) {
+  return `<button type="button" class="chip-copy-btn" draggable="true" data-guest-id="${guestId}">Copy link</button>`;
+}
+
 function guestChipHtml(guest) {
   if (!guest.ownGuest) {
     return `<div class="guest-chip reserved">${escapeHtml(guest.displayName)}</div>`;
   }
   return `
     <div class="guest-chip own" draggable="true" data-guest-id="${guest.guestId}">
-      <span>${escapeHtml(guest.displayName)}</span>
-      <span class="party-size">${guest.partySize}</span>
+      <span class="guest-chip-info">
+        <span>${escapeHtml(guest.displayName)}</span>
+        <span class="party-size">${guest.partySize}</span>
+      </span>
+      ${copyBtnHtml(guest.guestId)}
     </div>`;
 }
 
@@ -100,8 +108,11 @@ function renderUnassignedTray(guests) {
   const body = document.getElementById('unassigned-tray-body');
   body.innerHTML = guests.map((g) => `
     <div class="guest-chip own" draggable="true" data-guest-id="${g.id}">
-      <span>${escapeHtml(g.displayName)}${g.ownerUsername ? ` <span class="field-hint" style="display:inline;">(${escapeHtml(g.ownerUsername)})</span>` : ''}</span>
-      <span class="party-size">${g.partySize}</span>
+      <span class="guest-chip-info">
+        <span>${escapeHtml(g.displayName)}${g.ownerUsername ? ` <span class="field-hint" style="display:inline;">(${escapeHtml(g.ownerUsername)})</span>` : ''}</span>
+        <span class="party-size">${g.partySize}</span>
+      </span>
+      ${copyBtnHtml(g.id)}
     </div>`).join('');
 }
 
@@ -183,6 +194,29 @@ function wireTableCardEvents() {
       try {
         await api.deleteTable(btn.dataset.tableId);
         loadHall();
+      } catch (err) {
+        showError(hallError, err);
+      }
+    });
+  });
+}
+
+// Each chip is itself draggable="true" for seating; a copy button nested
+// inside needs its own draggable="true" + dragstart guard so grabbing the
+// button doesn't hijack the parent chip's drag gesture (a nested
+// draggable="false" element doesn't stop that — dragstart still targets
+// the nearest draggable ancestor).
+function wireCopyButtons() {
+  document.querySelectorAll('.chip-copy-btn').forEach((btn) => {
+    btn.addEventListener('dragstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      try {
+        const guest = await api.getGuest(btn.dataset.guestId);
+        copyToClipboard(guest.invitationUrl, btn, 'Copied');
       } catch (err) {
         showError(hallError, err);
       }

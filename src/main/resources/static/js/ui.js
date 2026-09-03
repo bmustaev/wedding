@@ -79,6 +79,14 @@ export function closeModal(modalEl) {
   modalEl.hidden = true;
 }
 
+/** Copies `text`, briefly swapping `btn`'s label to `copiedLabel` as feedback. */
+export async function copyToClipboard(text, btn, copiedLabel = 'Copied') {
+  await navigator.clipboard.writeText(text);
+  const original = btn.textContent;
+  btn.textContent = copiedLabel;
+  setTimeout(() => { btn.textContent = original; }, 1500);
+}
+
 export function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str ?? '';

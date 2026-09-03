@@ -4,7 +4,7 @@
 // hall.html (same element ids) — this module only supplies the behavior.
 import * as api from './api.js';
 import { getSide, isSuperAdmin } from './auth.js';
-import { showError, clearBanner, openModal, closeModal, escapeHtml } from './ui.js';
+import { showError, clearBanner, openModal, closeModal, escapeHtml, copyToClipboard } from './ui.js';
 
 const guestModalBackdrop = document.getElementById('guest-modal-backdrop');
 const guestModalTitle = document.getElementById('guest-modal-title');
@@ -132,12 +132,8 @@ export async function openGuestEditor(guestId) {
 document.getElementById('guest-modal-close').addEventListener('click', () => closeModal(guestModalBackdrop));
 document.getElementById('guest-cancel-btn').addEventListener('click', () => closeModal(guestModalBackdrop));
 
-document.getElementById('guest-copy-link-btn').addEventListener('click', async () => {
-  await navigator.clipboard.writeText(guestInvitationUrl.value);
-  const btn = document.getElementById('guest-copy-link-btn');
-  const original = btn.textContent;
-  btn.textContent = 'Copied';
-  setTimeout(() => { btn.textContent = original; }, 1500);
+document.getElementById('guest-copy-link-btn').addEventListener('click', (e) => {
+  copyToClipboard(guestInvitationUrl.value, e.target);
 });
 
 document.getElementById('guest-save-btn').addEventListener('click', async () => {

@@ -3,7 +3,7 @@ import * as api from './api.js';
 import { requireAuth, getRole, getUsername, isSuperAdmin, logout } from './auth.js';
 import {
   showError, clearBanner, setLoading, setEmpty,
-  renderPager, escapeHtml,
+  renderPager, escapeHtml, copyToClipboard,
 } from './ui.js';
 import { initGuestEditor, openGuestEditor } from './guest-editor.js';
 
@@ -73,6 +73,7 @@ function renderGuestsTable(pageResponse) {
       <td>${g.tableNumber != null ? `Table ${g.tableNumber}` : '—'}</td>
       <td>${g.firstViewedAt ? 'Viewed' : 'Not viewed yet'}</td>
       <td class="cell-actions">
+        <button type="button" class="btn btn-sm copy-link-btn" data-url="${escapeHtml(g.invitationUrl)}">Copy link</button>
         <button type="button" class="btn btn-sm edit-guest-btn">Edit</button>
       </td>
     </tr>
@@ -92,6 +93,12 @@ function renderGuestsTable(pageResponse) {
     btn.addEventListener('click', (e) => {
       const id = e.target.closest('tr').dataset.id;
       openGuestEditor(id);
+    });
+  });
+
+  guestsContainer.querySelectorAll('.copy-link-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      copyToClipboard(e.target.dataset.url, e.target);
     });
   });
 }

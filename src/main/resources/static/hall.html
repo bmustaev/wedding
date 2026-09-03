@@ -54,17 +54,19 @@
           </div>
           <div class="hall-tables-column" id="hall-groom-column"></div>
         </div>
+
+        <!-- Persistent rail on wide screens, next to the tables you're
+             dragging into; collapses into a docked bottom tray on narrow
+             ones (see hall.css's max-width:900px block). -->
+        <div class="unassigned-tray" id="unassigned-tray">
+          <div class="unassigned-tray-header" id="unassigned-tray-toggle">
+            <h3>Unassigned guests (<span id="unassigned-count">0</span>)</h3>
+            <span id="unassigned-tray-caret">&#9650;</span>
+          </div>
+          <div class="unassigned-tray-body" id="unassigned-tray-body"></div>
+        </div>
       </div>
     </main>
-  </div>
-
-  <!-- ============================= UNASSIGNED TRAY ============================= -->
-  <div class="unassigned-tray" id="unassigned-tray">
-    <div class="unassigned-tray-header" id="unassigned-tray-toggle">
-      <h3>Unassigned guests (<span id="unassigned-count">0</span>)</h3>
-      <span id="unassigned-tray-caret">&#9650;</span>
-    </div>
-    <div class="unassigned-tray-body" id="unassigned-tray-body"></div>
   </div>
 
   <!-- ============================= GUEST EDITOR MODAL (shared with dashboard.html) ============================= -->
