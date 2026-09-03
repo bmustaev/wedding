@@ -4,8 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>You're invited</title>
-  <link rel="stylesheet" href="css/shared.css" />
-  <link rel="stylesheet" href="css/invitation.css" />
+  <!-- Root-absolute paths: this page is also served at /i/{slug} (see
+       InvitationRedirectController), where relative paths would resolve
+       under /i/ and 404. -->
+  <link rel="stylesheet" href="/css/shared.css" />
+  <link rel="stylesheet" href="/css/invitation.css" />
 </head>
 <body>
   <div class="invite-shell">
@@ -64,6 +67,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/invitation.js"></script>
+  <script type="module" src="/js/invitation.js"></script>
 </body>
 </html>

@@ -27,17 +27,20 @@ Copy everything in this folder into the Spring Boot project's `src/main/resource
 
 ## The invitation-link decision
 
-The backend's `app.invitation.base-url` setting controls what link an admin sees/copies for a guest (`GuestResponse.invitationUrl`). This frontend reads the guest's slug from a **query string** (`invitation.html?slug=...`), not a path segment, because a static file server has no way to route an arbitrary path like `/i/{slug}` to `invitation.html` without a server-side rewrite rule.
+The backend's `app.invitation.base-url` setting controls what link an admin sees/copies for a guest (`GuestResponse.invitationUrl`). The invitation page accepts the guest's slug in **either** of two forms:
 
-**Set this on the backend to match:**
+- `invitation.html?slug=...` — query string, works on any static file server
+- `/i/{slug}` — the pretty path, served by `InvitationRedirectController` on the backend, which internally forwards the request to `invitation.html` (the browser's address bar keeps showing `/i/{slug}`, and the page's JS extracts the slug from the path)
+
+Because the page can be served at `/i/{slug}`, its CSS/JS references in `invitation.html` are **root-absolute** (`/css/...`, `/js/...`) — relative paths would resolve under `/i/` and 404. Keep any new asset references on this page root-absolute too.
+
+**Set this on the backend to match** (no trailing slash — the backend appends `/{slug}` itself):
 ```yaml
 app:
   invitation:
-    base-url: http://localhost:8080/invitation.html?slug=
+    base-url: http://localhost:8080/i
 ```
-(or whatever host you actually deploy to). With that, `GuestResponse.invitationUrl` will already be a complete, correct, clickable link — the frontend doesn't reconstruct it from the slug anywhere except reading it back out of its own query string on `invitation.html`.
-
-If you'd rather have the prettier `/i/{slug}` path, that requires one small addition on the backend (a controller forwarding `/i/{slug}` to `invitation.html` with the slug attached), which is out of scope here.
+(or whatever host you actually deploy to). With that, `GuestResponse.invitationUrl` will already be a complete, correct, clickable link — the frontend doesn't reconstruct it from the slug anywhere except reading it back out of its own URL on the invitation page.
 
 ## Auth
 

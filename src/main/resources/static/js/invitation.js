@@ -1,11 +1,16 @@
 // invitation.js — the guest-facing page. No auth: the slug in the URL is
-// the credential (see API.md, section 7). Reads it from a query string —
-// see this project's README.md for why, and what to set
-// app.invitation.base-url to on the backend to match.
+// the credential (see API.md, section 7). Reads it from the query string
+// or the /i/{slug} path — see this project's README.md for the details,
+// and what to set app.invitation.base-url to on the backend to match.
 import * as api from './api.js';
 import { showError, clearBanner, escapeHtml } from './ui.js';
 
-const slug = new URLSearchParams(location.search).get('slug');
+// The slug arrives either as ?slug=... (direct invitation.html link) or as
+// the path segment of the pretty /i/{slug} URL, which the backend forwards
+// here without rewriting (see InvitationRedirectController).
+const pathMatch = location.pathname.match(/^\/i\/([^/]+)\/?$/);
+const slug = new URLSearchParams(location.search).get('slug')
+  || (pathMatch ? decodeURIComponent(pathMatch[1]) : null);
 
 const loadingEl = document.getElementById('invite-loading');
 const errorStateEl = document.getElementById('invite-error-state');
