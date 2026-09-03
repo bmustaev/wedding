@@ -90,45 +90,28 @@ export function closeModal(modalEl) {
 }
 
 /**
- * Copies `text` — a string, or (when the caller doesn't have it yet, e.g.
- * still fetching it from the server) a Promise that resolves to one —
- * briefly swapping `btn`'s label to `copiedLabel` as feedback.
+ * Copies `text`, briefly swapping `btn`'s label to `copiedLabel` as feedback.
  *
  * navigator.clipboard is only defined in a secure context (HTTPS or
  * localhost) — this app is sometimes deployed over plain HTTP, where it's
  * undefined and would otherwise fail silently (an unawaited rejected
- * promise).
+ * promise). Falls back to the legacy execCommand('copy') path via a
+ * temporary off-screen textarea.
  *
- * Clipboard writes are gated on the click's "user activation", which is
- * consumed by any async work awaited beforehand — so a caller that has to
- * `await` a network call before it knows the text would silently fail here
- * (and fall through to execCommand, which fails too, for the same reason).
- * navigator.clipboard.write() sidesteps that: it accepts a ClipboardItem
- * whose value is itself a Promise, so the write() call — the part that
- * needs the activation — happens synchronously even though the text isn't
- * resolved yet. Callers should therefore pass the not-yet-awaited promise
- * straight through rather than awaiting it first.
+ * Both of those are gated on the click's "user activation" — mobile
+ * browsers in particular revoke it the moment any async work (e.g. a
+ * network call) is awaited first, which silently breaks the whole chain.
+ * So `text` must already be known synchronously when the caller invokes
+ * this — never `await` something to produce it and pass the result in.
  *
- * Falls back to writeText, then the legacy execCommand('copy') path via a
- * temporary off-screen textarea, and throws if every approach fails so
- * callers can surface an error instead of the button just doing nothing.
+ * Throws if every approach fails so callers can surface an error instead of
+ * the button just doing nothing.
  */
 export async function copyToClipboard(text, btn, copiedLabel = 'Copied') {
-  const textPromise = Promise.resolve(text);
   let copied = false;
-  if (navigator.clipboard?.write && window.ClipboardItem) {
+  if (navigator.clipboard?.writeText) {
     try {
-      const blobPromise = textPromise.then((value) => new Blob([value], { type: 'text/plain' }));
-      await navigator.clipboard.write([new ClipboardItem({ 'text/plain': blobPromise })]);
-      copied = true;
-    } catch {
-      // fall through to the paths below
-    }
-  }
-  const value = await textPromise;
-  if (!copied && navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(value);
+      await navigator.clipboard.writeText(text);
       copied = true;
     } catch {
       // fall through to the legacy path below
@@ -136,7 +119,7 @@ export async function copyToClipboard(text, btn, copiedLabel = 'Copied') {
   }
   if (!copied) {
     const textarea = document.createElement('textarea');
-    textarea.value = value;
+    textarea.value = text;
     textarea.style.position = 'fixed';
     textarea.style.top = '-1000px';
     textarea.style.left = '-1000px';

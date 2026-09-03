@@ -99,8 +99,8 @@ function tableCardHtml(table, isOwnSide) {
     </div>`;
 }
 
-function copyBtnHtml(guestId) {
-  return `<button type="button" class="chip-copy-btn" draggable="true" data-guest-id="${guestId}" title="${escapeHtml(t('copy-link-btn'))}" aria-label="${escapeHtml(t('copy-link-btn'))}">${ICON_COPY_LINK}</button>`;
+function copyBtnHtml(invitationUrl) {
+  return `<button type="button" class="chip-copy-btn" draggable="true" data-url="${escapeHtml(invitationUrl)}" title="${escapeHtml(t('copy-link-btn'))}" aria-label="${escapeHtml(t('copy-link-btn'))}">${ICON_COPY_LINK}</button>`;
 }
 
 function guestChipHtml(guest) {
@@ -113,7 +113,7 @@ function guestChipHtml(guest) {
         <span>${escapeHtml(guest.displayName)}</span>
         <span class="party-size">${guest.partySize}</span>
       </span>
-      ${copyBtnHtml(guest.guestId)}
+      ${copyBtnHtml(guest.invitationUrl)}
     </div>`;
 }
 
@@ -126,7 +126,7 @@ function renderUnassignedTray(guests) {
         <span>${escapeHtml(g.displayName)}${g.ownerUsername ? ` <span class="field-hint" style="display:inline;">(${escapeHtml(g.ownerUsername)})</span>` : ''}</span>
         <span class="party-size">${g.partySize}</span>
       </span>
-      ${copyBtnHtml(g.id)}
+      ${copyBtnHtml(g.invitationUrl)}
     </div>`).join('');
 }
 
@@ -278,11 +278,13 @@ function wireCopyButtons() {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       try {
-        // Passed straight through as a promise (not awaited here) so
-        // copyToClipboard can still call the Clipboard API synchronously —
-        // see its doc comment in ui.js for why that matters.
-        const urlPromise = api.getGuest(btn.dataset.guestId).then((guest) => guest.invitationUrl);
-        await copyToClipboard(urlPromise, btn, ICON_CHECK);
+        // The URL is already in data-url (see copyBtnHtml/the hall view
+        // response) rather than fetched here — mobile browsers in
+        // particular tie clipboard-write permission tightly to the click's
+        // user activation, and any awaited network call first (there used
+        // to be one, via api.getGuest) reliably burns through it before the
+        // copy ever happens.
+        await copyToClipboard(btn.dataset.url, btn, ICON_CHECK);
       } catch (err) {
         showError(hallError, err);
       }

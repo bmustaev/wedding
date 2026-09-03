@@ -15,6 +15,7 @@ public record SeatingChartEntryResponse(
         int seatsLeft,
         UUID guestId,
         String displayName,
+        String invitationUrl,
         Integer partySize,
         boolean ownGuest
 ) {}

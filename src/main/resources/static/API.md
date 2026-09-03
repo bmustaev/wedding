@@ -374,6 +374,7 @@ Every table across all three sides. **Own guests show by name; every other admin
     "seatsLeft": 7,
     "guestId": "3fa85f64-...",
     "displayName": "The Miller Family",
+    "invitationUrl": "https://yourdomain.com/i/abc123",
     "partySize": 4,
     "ownGuest": true
   },
@@ -386,13 +387,14 @@ Every table across all three sides. **Own guests show by name; every other admin
     "seatsLeft": 12,
     "guestId": null,
     "displayName": null,
+    "invitationUrl": null,
     "partySize": null,
     "ownGuest": false
   }
 ]
 ```
 
-(A table with no guests seated yet still appears, with `guestId`/`displayName`/`partySize` all `null`.)
+(A table with no guests seated yet still appears, with `guestId`/`displayName`/`invitationUrl`/`partySize` all `null`. `invitationUrl` is also `null` whenever `ownGuest` is `false` — same anonymization as `displayName`.)
 
 ### `GET /api/seating/hall`
 
@@ -406,23 +408,25 @@ Everything the hall-map page needs in a single call: the head table, every bride
   "headTable": {
     "id": "d1e2f3a4-...", "side": "HEAD", "tableNumber": null, "label": "Head Table",
     "capacity": 2, "seatsLeft": 1,
-    "guests": [{ "guestId": "e5f6a1b2-...", "displayName": "Reserved (1 seats)", "partySize": 1, "ownGuest": false }]
+    "guests": [{ "guestId": "e5f6a1b2-...", "displayName": "Reserved (1 seats)", "invitationUrl": null, "partySize": 1, "ownGuest": false }]
   },
   "brideTables": [
     {
       "id": "b2c3d4e5-...", "side": "BRIDE", "tableNumber": 1, "label": "1D",
       "capacity": 12, "seatsLeft": 7,
-      "guests": [{ "guestId": "3fa85f64-...", "displayName": "The Miller Family", "partySize": 4, "ownGuest": true }]
+      "guests": [{ "guestId": "3fa85f64-...", "displayName": "The Miller Family", "invitationUrl": "https://yourdomain.com/i/abc123", "partySize": 4, "ownGuest": true }]
     }
   ],
   "groomTables": [
     { "id": "c3d4e5f6-...", "side": "GROOM", "tableNumber": 1, "label": "1B", "capacity": 12, "seatsLeft": 12, "guests": [] }
   ],
   "unassignedGuests": [
-    { "id": "f6a1b2c3-...", "displayName": "Jane Doe", "partySize": 1, "isGroup": false }
+    { "id": "f6a1b2c3-...", "displayName": "Jane Doe", "partySize": 1, "isGroup": false, "ownerUsername": null, "invitationUrl": "https://yourdomain.com/i/def456" }
   ]
 }
 ```
+
+`invitationUrl` on a table guest is `null` whenever `ownGuest` is `false` (same anonymization as `displayName`); on an unassigned guest it's always populated — that list only ever contains guests the caller is allowed to manage.
 
 ### `POST /api/seating/tables`
 

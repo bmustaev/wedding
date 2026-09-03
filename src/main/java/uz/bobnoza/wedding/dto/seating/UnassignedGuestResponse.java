@@ -12,5 +12,6 @@ public record UnassignedGuestResponse(
         String displayName,
         int partySize,
         boolean isGroup,
-        String ownerUsername
+        String ownerUsername,
+        String invitationUrl
 ) {}

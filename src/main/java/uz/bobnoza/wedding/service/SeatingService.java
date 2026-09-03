@@ -18,6 +18,7 @@ import uz.bobnoza.wedding.exception.TableNotEmptyException;
 import uz.bobnoza.wedding.repository.GuestRepository;
 import uz.bobnoza.wedding.repository.SeatingTableRepository;
 import uz.bobnoza.wedding.security.AdminPrincipal;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -55,13 +56,16 @@ public class SeatingService {
     private final JdbcTemplate jdbcTemplate;
     private final GuestRepository guestRepository;
     private final SeatingTableRepository seatingTableRepository;
+    private final String invitationBaseUrl;
 
     public SeatingService(JdbcTemplate jdbcTemplate,
                            GuestRepository guestRepository,
-                           SeatingTableRepository seatingTableRepository) {
+                           SeatingTableRepository seatingTableRepository,
+                           @Value("${app.invitation.base-url}") String invitationBaseUrl) {
         this.jdbcTemplate = jdbcTemplate;
         this.guestRepository = guestRepository;
         this.seatingTableRepository = seatingTableRepository;
+        this.invitationBaseUrl = invitationBaseUrl;
     }
 
     @Transactional(readOnly = true)
@@ -100,7 +104,7 @@ public class SeatingService {
         for (SeatingChartEntryResponse row : rows) {
             HallTableBuilder builder = byTable.computeIfAbsent(row.tableId(), id -> new HallTableBuilder(row));
             if (row.guestId() != null) {
-                builder.guests.add(new HallGuestEntry(row.guestId(), row.displayName(), row.partySize(), row.ownGuest()));
+                builder.guests.add(new HallGuestEntry(row.guestId(), row.displayName(), row.partySize(), row.ownGuest(), row.invitationUrl()));
             }
         }
 
@@ -121,12 +125,14 @@ public class SeatingService {
         List<UnassignedGuestResponse> unassigned = caller.isSuperAdmin()
                 ? guestRepository.findAllUnassignedAcrossAllAdmins().stream()
                         .map(g -> new UnassignedGuestResponse(
-                                g.getId(), g.getDisplayName(), g.getPartySize(), g.isGroup(), g.getAdmin().getUsername()))
+                                g.getId(), g.getDisplayName(), g.getPartySize(), g.isGroup(), g.getAdmin().getUsername(),
+                                invitationBaseUrl + "/" + g.getLandingSlug()))
                         .toList()
                 : guestRepository.findAllByAdminIdAndDeletedFalseOrderByDisplayNameAsc(caller.getAdminId(), Pageable.unpaged())
                         .stream()
                         .filter(g -> g.getTable() == null)
-                        .map(g -> new UnassignedGuestResponse(g.getId(), g.getDisplayName(), g.getPartySize(), g.isGroup(), null))
+                        .map(g -> new UnassignedGuestResponse(g.getId(), g.getDisplayName(), g.getPartySize(), g.isGroup(), null,
+                                invitationBaseUrl + "/" + g.getLandingSlug()))
                         .toList();
 
         return new HallViewResponse(headTable, brideTables, groomTables, unassigned);
@@ -258,6 +264,7 @@ public class SeatingService {
                 (rs, rowNum) -> {
                     String guestIdStr = rs.getString("guest_id");
                     Object partySizeObj = rs.getObject("party_size");
+                    String landingSlug = rs.getString("landing_slug");
                     return new SeatingChartEntryResponse(
                             UUID.fromString(rs.getString("table_id")),
                             rs.getString("side").toUpperCase(),
@@ -267,6 +274,7 @@ public class SeatingService {
                             rs.getInt("seats_left"),
                             guestIdStr != null ? UUID.fromString(guestIdStr) : null,
                             rs.getString("display_name"),
+                            landingSlug != null ? invitationBaseUrl + "/" + landingSlug : null,
                             partySizeObj != null ? rs.getInt("party_size") : null,
                             rs.getBoolean("is_own_guest"));
                 });

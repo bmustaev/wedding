@@ -418,6 +418,10 @@ BEGIN
              THEN g.display_name
              ELSE CONCAT('Reserved (', g.party_size, ' seats)')
         END AS display_name,
+        CASE WHEN v_is_super_admin OR g.admin_id = p_admin_id
+             THEN g.landing_slug
+             ELSE NULL
+        END AS landing_slug,
         g.party_size,
         (v_is_super_admin OR g.admin_id = p_admin_id) AS is_own_guest
     FROM seating_tables st
