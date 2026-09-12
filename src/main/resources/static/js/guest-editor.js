@@ -126,8 +126,13 @@ export function initGuestEditor({ onSaved, onDeleted } = {}) {
   onDeletedCallback = onDeleted || onSavedCallback;
 }
 
-/** Opens the modal in-place — pass a guest id to edit, or null/undefined to add a new guest. */
-export async function openGuestEditor(guestId) {
+/**
+ * Opens the modal in-place — pass a guest id to edit, or null/undefined to
+ * add a new guest. presetTableId (new-guest mode only, e.g. the hall
+ * page's per-table "add guest" button) pre-selects that table in the
+ * dropdown so it's assigned as soon as the guest is saved.
+ */
+export async function openGuestEditor(guestId, presetTableId) {
   editingGuestId = guestId || null;
   clearBanner(guestModalError);
   guestForm.reset();
@@ -147,7 +152,7 @@ export async function openGuestEditor(guestId) {
   }
 
   editingGuestTableId = null;
-  await populateTableSelect(null);
+  await populateTableSelect(editingGuestId ? null : (presetTableId || null));
   openModal(guestModalBackdrop);
 
   if (editingGuestId) {

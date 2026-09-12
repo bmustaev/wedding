@@ -5,7 +5,7 @@
 // only source of truth for capacity/side rules anyway.
 import * as api from './api.js';
 import { requireAuth, getRole, getUsername, getSide, isSuperAdmin, logout } from './auth.js';
-import { showError, clearBanner, escapeHtml, copyToClipboard, ICON_COPY_LINK, ICON_CHECK } from './ui.js';
+import { showError, clearBanner, escapeHtml, copyToClipboard, ICON_COPY_LINK, ICON_CHECK, ICON_ADD_PERSON } from './ui.js';
 import { initGuestEditor, openGuestEditor } from './guest-editor.js';
 import { applyStaticTranslations, initLanguageSwitcher, t } from './admin-i18n.js';
 
@@ -96,6 +96,9 @@ function addTableButtonHtml(side) {
 
 function tableCardHtml(table, isOwnSide) {
   const chips = table.guests.map((g) => guestChipHtml(g)).join('');
+  const addGuestBtn = isOwnSide
+    ? `<button type="button" class="hall-table-add-guest" data-table-id="${table.id}" title="${escapeHtml(t('add-guest-to-table-btn'))}" aria-label="${escapeHtml(t('add-guest-to-table-btn'))}">${ICON_ADD_PERSON}</button>`
+    : '';
   const removeBtn = isOwnSide
     ? `<button type="button" class="hall-table-remove" data-table-id="${table.id}">${t('remove-table-btn')}</button>`
     : '';
@@ -105,7 +108,10 @@ function tableCardHtml(table, isOwnSide) {
     <div class="hall-table-card" data-table-id="${table.id}" data-side="${table.side}">
       <div class="hall-table-header">
         <h3>${escapeHtml(table.label)}</h3>
-        ${removeBtn}
+        <div class="hall-table-header-actions">
+          ${addGuestBtn}
+          ${removeBtn}
+        </div>
       </div>
       ${seatsLineHtml}
       <div class="hall-chip-list" data-table-id="${table.id}" data-empty-label="${emptyLabel}">${chips}</div>
@@ -254,6 +260,12 @@ function wireTableCardEvents() {
         return;
       }
       await handleAssign(draggedGuestId, card.dataset.tableId);
+    });
+  });
+
+  document.querySelectorAll('.hall-table-add-guest').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      openGuestEditor(null, btn.dataset.tableId);
     });
   });
 

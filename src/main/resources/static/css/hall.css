@@ -68,6 +68,25 @@
   margin-bottom: 0.6em;
 }
 .hall-table-header h3 { margin: 0; }
+.hall-table-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+.hall-table-add-guest {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  padding: 0.3em;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.hall-table-add-guest svg { display: block; width: 14px; height: 14px; }
+.hall-table-add-guest:hover { border-color: var(--brass); color: var(--ink); }
 .hall-table-remove {
   background: none;
   border: none;
