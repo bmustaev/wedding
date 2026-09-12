@@ -30,7 +30,7 @@ const uploadError = document.getElementById('upload-error');
 // if the venue or date ever changes.
 // -----------------------------------------------------------------------
 const WEDDING_DATE = new Date('2026-10-02T18:00:00+05:00');
-const GALLERY_IMAGES = ['', '', '']; // fill in with photo paths when available
+const GALLERY_IMAGES = ['/img/about-rings.jpg', '', '/img/about-walk.jpg']; // fill in with photo paths when available
 
 // Best guess until the guest's own `language` comes back from the API —
 // used only for the loading/invalid-link screens, since nothing else is
