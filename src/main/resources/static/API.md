@@ -579,6 +579,45 @@ Disables (or re-enables) an admin's login without deleting them or their guests.
 
 Same paginated `GuestResponse` shape as `GET /api/guests`, but for the chosen admin — this is the "click into an admin, see their guest list" drill-down. Same `page`/`size`/`sort` query params apply.
 
+### `GET /api/super-admin/gallery-images`
+
+The invitation page's "about us" gallery, in display order. Same response shape as the public `GET /api/public/gallery-images` (see section 8) — this is the same list, just reachable while signed in as super admin.
+
+### `POST /api/super-admin/gallery-images`
+
+**Content-Type:** `multipart/form-data` — field `file` (the photo) plus optional text fields `captionRu`, `captionUz`, `captionEn` (each defaults to `""` if omitted).
+
+```bash
+curl -X POST http://localhost:8080/api/super-admin/gallery-images \
+  -H "Authorization: Bearer $SUPER_TOKEN" \
+  -F "file=@our-photo.jpg" \
+  -F "captionRu=Наша первая поездка" \
+  -F "captionUz=Birinchi sayohatimiz" \
+  -F "captionEn=Our first trip together"
+```
+
+**Response `201`:** a `GalleryImageResponse` (see section 8), appended to the end of the gallery (`displayOrder` = current max + 1).
+
+### `PATCH /api/super-admin/gallery-images/{id}`
+
+**Request:**
+```json
+{ "captionRu": "...", "captionUz": "...", "captionEn": "..." }
+```
+All three are required fields (an empty string is fine — it just means no caption in that language), max 255 chars each.
+
+**Response `200`:** the updated `GalleryImageResponse`. **Response `404`** if `id` doesn't exist.
+
+### `PATCH /api/super-admin/gallery-images/{id}/move-up` and `.../move-down`
+
+Swaps this photo's `displayOrder` with its neighbor on that side. A no-op (still `204`) if it's already first/last — the admin UI just disables that button rather than erroring.
+
+**Response:** `204 No Content`
+
+### `DELETE /api/super-admin/gallery-images/{id}`
+
+Deletes the row and the underlying file. **Response:** `204 No Content`. **Response `404`** if `id` doesn't exist.
+
 ---
 
 ## 7. Public invitations (guest-facing — no login)
@@ -647,6 +686,33 @@ Lets a guest remove their own upload (e.g. wrong photo). Scoped to that slug's g
 
 ---
 
+## 8. Public gallery (guest-facing — no login)
+
+The invitation page's "about us" section — a super-admin-managed list of photos with a caption per language (see section 6). Site-wide, not scoped to any guest's slug.
+
+### `GET /api/public/gallery-images`
+
+**Response `200`:**
+```json
+[
+  {
+    "id": "49b4d672-...",
+    "imageUrl": "/api/public/gallery-images/49b4d672-.../file",
+    "captionRu": "Первые кольца были из скрепок",
+    "captionUz": "Birinchi uzuklarimiz skrepkadan edi",
+    "captionEn": "Our first rings were made of paperclips",
+    "displayOrder": 0
+  }
+]
+```
+An empty array is a normal response — the invitation page hides the whole "about us" section when there's nothing to show.
+
+### `GET /api/public/gallery-images/{id}/file`
+
+Streams the photo's bytes with its real `Content-Type` (e.g. `image/jpeg`) — this is exactly the URL `imageUrl` above already points to, so the frontend never needs to build it itself.
+
+---
+
 ## Quick reference — all routes
 
 | Method | Path | Auth |
@@ -677,8 +743,16 @@ Lets a guest remove their own upload (e.g. wrong photo). Scoped to that slug's g
 | POST | `/api/super-admin/admins` | super admin |
 | PATCH | `/api/super-admin/admins/{id}/active` | super admin |
 | GET | `/api/super-admin/admins/{id}/guests` | super admin |
+| GET | `/api/super-admin/gallery-images` | super admin |
+| POST | `/api/super-admin/gallery-images` | super admin |
+| PATCH | `/api/super-admin/gallery-images/{id}` | super admin |
+| PATCH | `/api/super-admin/gallery-images/{id}/move-up` | super admin |
+| PATCH | `/api/super-admin/gallery-images/{id}/move-down` | super admin |
+| DELETE | `/api/super-admin/gallery-images/{id}` | super admin |
 | GET | `/api/public/invitations/{slug}` | none |
 | GET | `/api/public/invitations/{slug}/media` | none |
 | POST | `/api/public/invitations/{slug}/media/photos` | none |
 | POST | `/api/public/invitations/{slug}/media/videos` | none |
 | DELETE | `/api/public/invitations/{slug}/media/{mediaId}` | none |
+| GET | `/api/public/gallery-images` | none |
+| GET | `/api/public/gallery-images/{id}/file` | none |

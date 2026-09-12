@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Фото и видео — Бобиржон и Дилноза</title>
+<link rel="icon" href="/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Marck+Script&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/invitation.css">
+</head>
+<body>
+
+<!-- Placeholder page: linked from invitation.html's "Загрузить фото/видео"
+     buttons. Real upload management belongs here eventually — for now it
+     just explains that uploading opens on the wedding day. Same slug-as-
+     credential model as invitation.html (see API.md section 7); reused
+     here only to resolve the guest's language and to link back. -->
+<div id="loading" class="screen">
+  <span class="spinner" aria-hidden="true"></span>
+  <p data-i18n="loading-text">Открываем ваше приглашение…</p>
+</div>
+
+<div id="error-state" class="screen" hidden>
+  <h1 data-i18n="error-title">Ссылка недействительна</h1>
+  <p data-i18n="error-body">Проверьте ссылку, которую вам прислали, или свяжитесь с молодожёнами.</p>
+</div>
+
+<div id="content" class="screen" hidden>
+  <h1 data-i18n="media-page-title">Фото и видео</h1>
+  <p data-i18n="media-page-message">Эта функция станет доступна в день свадьбы.</p>
+  <p data-i18n="media-page-explanation">Мы включим загрузку фото и видео прямо 2 октября, чтобы вы могли поделиться моментами сразу с торжества. Загляните сюда снова в этот день.</p>
+  <a class="btn" id="back-link" href="#" data-i18n="back-to-invitation-label">← Назад к приглашению</a>
+</div>
+
+<script type="module" src="/js/media.js"></script>
+</body>
+</html>

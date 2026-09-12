@@ -149,6 +149,25 @@ CREATE TABLE IF NOT EXISTS guest_media (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci$$
 
 -- ---------------------------------------------------------------------
+-- GALLERY IMAGES  (invitation page's "about us" section, super-admin managed)
+-- ---------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS gallery_images (
+    id              CHAR(36) NOT NULL PRIMARY KEY,
+    storage_key     VARCHAR(500) NOT NULL,
+    mime_type       VARCHAR(100) NOT NULL,
+    caption_ru      VARCHAR(255) NOT NULL DEFAULT '',
+    caption_uz      VARCHAR(255) NOT NULL DEFAULT '',
+    caption_en      VARCHAR(255) NOT NULL DEFAULT '',
+    display_order   INT NOT NULL DEFAULT 0,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT uk_gallery_images_storage_key UNIQUE (storage_key),
+    INDEX idx_gallery_images_order (display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci$$
+
+-- ---------------------------------------------------------------------
 -- IMPORT BATCHES  (.txt guest-list uploads)
 -- ---------------------------------------------------------------------
 

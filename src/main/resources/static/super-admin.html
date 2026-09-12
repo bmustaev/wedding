@@ -22,6 +22,7 @@
       <nav class="sidebar-nav">
         <button type="button" id="nav-back" data-i18n="nav-back-to-dashboard">&larr; Back to my dashboard</button>
         <button type="button" data-target="admins" class="active" data-i18n="nav-admins">Admins</button>
+        <button type="button" data-target="gallery" data-i18n="nav-gallery">Gallery</button>
       </nav>
 
       <div class="sidebar-footer">
@@ -63,6 +64,22 @@
         <div id="admin-guests-container"></div>
         <div id="admin-guests-pager" class="pager"></div>
       </section>
+
+      <!-- ============================= INVITATION GALLERY ============================= -->
+      <section data-panel="gallery">
+        <div class="content-header">
+          <div>
+            <h1 data-i18n="gallery-heading">Invitation gallery</h1>
+            <p class="field-hint" style="margin:0;" data-i18n="gallery-subtitle">Photos shown in the "About us" section of the invitation page, in this order.</p>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn btn-primary" id="add-gallery-image-btn" data-i18n="add-gallery-image-btn">Add photo</button>
+          </div>
+        </div>
+
+        <div id="gallery-error" class="banner banner-error" hidden></div>
+        <div id="gallery-container"></div>
+      </section>
     </main>
   </div>
 
@@ -98,6 +115,42 @@
       <div class="modal-footer">
         <button type="button" class="btn" id="admin-cancel-btn" data-i18n="cancel-btn">Cancel</button>
         <button type="button" class="btn btn-primary" id="admin-save-btn" data-i18n="create-admin-btn">Create admin</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= ADD GALLERY PHOTO MODAL ============================= -->
+  <div class="modal-backdrop" id="gallery-modal-backdrop" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h2 data-i18n="add-gallery-image-modal-title">Add photo</h2>
+        <button type="button" class="modal-close" id="gallery-modal-close" aria-label="Close">&times;</button>
+      </div>
+
+      <div id="gallery-modal-error" class="banner banner-error" hidden></div>
+
+      <form id="gallery-form">
+        <div class="field">
+          <label for="gallery-file" data-i18n="gallery-file-label">Photo</label>
+          <input type="file" id="gallery-file" accept="image/*" required />
+        </div>
+        <div class="field">
+          <label for="gallery-caption-ru" data-i18n="gallery-caption-ru-label">Caption (Russian)</label>
+          <input type="text" id="gallery-caption-ru" maxlength="255" />
+        </div>
+        <div class="field">
+          <label for="gallery-caption-uz" data-i18n="gallery-caption-uz-label">Caption (Uzbek)</label>
+          <input type="text" id="gallery-caption-uz" maxlength="255" />
+        </div>
+        <div class="field">
+          <label for="gallery-caption-en" data-i18n="gallery-caption-en-label">Caption (English)</label>
+          <input type="text" id="gallery-caption-en" maxlength="255" />
+        </div>
+      </form>
+
+      <div class="modal-footer">
+        <button type="button" class="btn" id="gallery-cancel-btn" data-i18n="cancel-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="gallery-save-btn" data-i18n="upload-btn">Upload</button>
       </div>
     </div>
   </div>

@@ -20,6 +20,16 @@ function showPanel(name) {
   panels.forEach((p) => p.classList.toggle('active', p.dataset.panel === name));
 }
 
+// Top-level sidebar destinations (not the read-only admin-guests drill-down,
+// which is only ever opened programmatically from the admins list).
+document.querySelectorAll('.sidebar-nav [data-target]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar-nav [data-target]').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    showPanel(btn.dataset.target);
+  });
+});
+
 // -----------------------------------------------------------------------
 // Admin list
 // -----------------------------------------------------------------------
@@ -166,7 +176,129 @@ function renderAdminGuests(pageResponse) {
 }
 
 // -----------------------------------------------------------------------
+// Invitation gallery ("about us" photos on the invitation page)
+// -----------------------------------------------------------------------
+
+const galleryContainer = document.getElementById('gallery-container');
+const galleryError = document.getElementById('gallery-error');
+
+async function loadGalleryImages() {
+  clearBanner(galleryError);
+  setLoading(galleryContainer, t('loading-generic'));
+  try {
+    const images = await api.listGalleryImagesAdmin();
+    renderGalleryImages(images);
+  } catch (err) {
+    showError(galleryError, err);
+    galleryContainer.innerHTML = '';
+  }
+}
+
+function renderGalleryImages(images) {
+  if (images.length === 0) {
+    setEmpty(galleryContainer, t('gallery-empty'));
+    return;
+  }
+
+  const cards = images.map((img, i) => `
+    <div class="gallery-admin-card" data-id="${img.id}">
+      <img src="${img.imageUrl}" alt="" />
+      <div class="field">
+        <label>${t('gallery-caption-ru-label')}</label>
+        <input type="text" class="cap-ru" maxlength="255" value="${escapeHtml(img.captionRu)}" />
+      </div>
+      <div class="field">
+        <label>${t('gallery-caption-uz-label')}</label>
+        <input type="text" class="cap-uz" maxlength="255" value="${escapeHtml(img.captionUz)}" />
+      </div>
+      <div class="field">
+        <label>${t('gallery-caption-en-label')}</label>
+        <input type="text" class="cap-en" maxlength="255" value="${escapeHtml(img.captionEn)}" />
+      </div>
+      <div class="cell-actions">
+        <button type="button" class="btn btn-sm move-up-btn" ${i === 0 ? 'disabled' : ''} aria-label="${t('gallery-move-up-aria')}">&uarr;</button>
+        <button type="button" class="btn btn-sm move-down-btn" ${i === images.length - 1 ? 'disabled' : ''} aria-label="${t('gallery-move-down-aria')}">&darr;</button>
+        <button type="button" class="btn btn-sm save-caption-btn">${t('save-btn')}</button>
+        <button type="button" class="btn btn-sm delete-gallery-btn">${t('delete-aria')}</button>
+      </div>
+    </div>`).join('');
+
+  galleryContainer.innerHTML = `<div class="gallery-admin-grid">${cards}</div>`;
+
+  galleryContainer.querySelectorAll('.gallery-admin-card').forEach((card) => {
+    const id = card.dataset.id;
+    card.querySelector('.move-up-btn').addEventListener('click', () => moveGalleryImage(id, 'up'));
+    card.querySelector('.move-down-btn').addEventListener('click', () => moveGalleryImage(id, 'down'));
+    card.querySelector('.save-caption-btn').addEventListener('click', () => saveGalleryCaptions(id, card));
+    card.querySelector('.delete-gallery-btn').addEventListener('click', () => deleteGalleryImage(id));
+  });
+}
+
+async function moveGalleryImage(imageId, direction) {
+  try {
+    await api.moveGalleryImage(imageId, direction);
+    loadGalleryImages();
+  } catch (err) {
+    showError(galleryError, err);
+  }
+}
+
+async function saveGalleryCaptions(imageId, card) {
+  try {
+    await api.updateGalleryImageCaptions(imageId, {
+      captionRu: card.querySelector('.cap-ru').value,
+      captionUz: card.querySelector('.cap-uz').value,
+      captionEn: card.querySelector('.cap-en').value,
+    });
+  } catch (err) {
+    showError(galleryError, err);
+  }
+}
+
+async function deleteGalleryImage(imageId) {
+  if (!confirm(t('confirm-delete-gallery-image'))) return;
+  try {
+    await api.deleteGalleryImage(imageId);
+    loadGalleryImages();
+  } catch (err) {
+    showError(galleryError, err);
+  }
+}
+
+document.getElementById('add-gallery-image-btn').addEventListener('click', () => {
+  document.getElementById('gallery-form').reset();
+  clearBanner(document.getElementById('gallery-modal-error'));
+  openModal(document.getElementById('gallery-modal-backdrop'));
+});
+document.getElementById('gallery-modal-close').addEventListener('click', () => closeModal(document.getElementById('gallery-modal-backdrop')));
+document.getElementById('gallery-cancel-btn').addEventListener('click', () => closeModal(document.getElementById('gallery-modal-backdrop')));
+
+document.getElementById('gallery-save-btn').addEventListener('click', async () => {
+  const errorBanner = document.getElementById('gallery-modal-error');
+  clearBanner(errorBanner);
+
+  const file = document.getElementById('gallery-file').files[0];
+  if (!file) {
+    showError(errorBanner, { message: t('gallery-choose-file-first') });
+    return;
+  }
+
+  try {
+    await api.createGalleryImage(file, {
+      captionRu: document.getElementById('gallery-caption-ru').value,
+      captionUz: document.getElementById('gallery-caption-uz').value,
+      captionEn: document.getElementById('gallery-caption-en').value,
+    });
+    closeModal(document.getElementById('gallery-modal-backdrop'));
+    loadGalleryImages();
+  } catch (err) {
+    showError(errorBanner, err);
+  }
+});
+
+// -----------------------------------------------------------------------
 // Init
 // -----------------------------------------------------------------------
 
 loadAdmins();
+loadGalleryImages();

@@ -8,10 +8,10 @@
 // language as a best guess for the loading/invalid-link screens shown
 // before that's known.
 import * as api from './api.js';
-import { showError, clearBanner, escapeHtml } from './ui.js';
+import { showError, escapeHtml } from './ui.js';
 import {
   normalizeLanguage, applyStaticTranslations, countdownWord,
-  galleryCaptionsFor, mapQueryFor, defaultGreetingFor, seatMembersText,
+  mapQueryFor, defaultGreetingFor, seatMembersText,
   remainingMediaText, documentTitleFor,
 } from './i18n.js';
 
@@ -24,13 +24,20 @@ const errorStateEl = document.getElementById('invite-error-state');
 const contentEl = document.getElementById('invite-content');
 const uploadError = document.getElementById('upload-error');
 
+// Uploading isn't live yet (see media.html) — both buttons just link there,
+// carrying the slug along so that page knows which guest this is.
+if (slug) {
+  const mediaHref = `/media.html?slug=${encodeURIComponent(slug)}`;
+  document.getElementById('photo-btn').href = mediaHref;
+  document.getElementById('video-btn').href = mediaHref;
+}
+
 // -----------------------------------------------------------------------
 // Fixed event details — same for every guest, so they don't come from the
 // API. Keep this in sync with the copy in the page's markup (and i18n.js)
 // if the venue or date ever changes.
 // -----------------------------------------------------------------------
 const WEDDING_DATE = new Date('2026-10-02T18:00:00+05:00');
-const GALLERY_IMAGES = ['/img/about-rings.jpg', '', '/img/about-walk.jpg']; // fill in with photo paths when available
 
 // Best guess until the guest's own `language` comes back from the API —
 // used only for the loading/invalid-link screens, since nothing else is
@@ -64,9 +71,7 @@ function applyLanguage(lang) {
   currentLang = normalizeLanguage(lang);
   applyStaticTranslations(currentLang);
 
-  document.querySelectorAll('#gallery figcaption').forEach((el, i) => {
-    el.textContent = galleryCaptionsFor(currentLang)[i] || '';
-  });
+  updateAboutGalleryCaptions();
 
   const query = mapQueryFor(currentLang);
   document.getElementById('map-ya').href = 'https://yandex.uz/maps/?text=' + encodeURIComponent(query);
@@ -95,8 +100,8 @@ function renderInvitation(invitation) {
 
   updateRemaining('photos-remaining', 'photo', invitation.photosRemaining);
   updateRemaining('videos-remaining', 'video', invitation.videosRemaining);
-  toggleFileInput('photo-btn', 'photo-input', invitation.photosRemaining);
-  toggleFileInput('video-btn', 'video-input', invitation.videosRemaining);
+  toggleFileButton('photo-btn', invitation.photosRemaining);
+  toggleFileButton('video-btn', invitation.videosRemaining);
 }
 
 function updateRemaining(elementId, kind, remaining) {
@@ -105,10 +110,8 @@ function updateRemaining(elementId, kind, remaining) {
   el.classList.toggle('at-cap', remaining <= 0);
 }
 
-function toggleFileInput(btnId, inputId, remaining) {
-  const disabled = remaining <= 0;
-  document.getElementById(inputId).disabled = disabled;
-  document.getElementById(btnId).classList.toggle('is-disabled', disabled);
+function toggleFileButton(btnId, remaining) {
+  document.getElementById(btnId).classList.toggle('is-disabled', remaining <= 0);
 }
 
 // -----------------------------------------------------------------------
@@ -142,8 +145,8 @@ function renderUploadedMedia(items) {
         const invitation = await api.getPublicInvitation(slug);
         updateRemaining('photos-remaining', 'photo', invitation.photosRemaining);
         updateRemaining('videos-remaining', 'video', invitation.videosRemaining);
-        toggleFileInput('photo-btn', 'photo-input', invitation.photosRemaining);
-        toggleFileInput('video-btn', 'video-input', invitation.videosRemaining);
+        toggleFileButton('photo-btn', invitation.photosRemaining);
+        toggleFileButton('video-btn', invitation.videosRemaining);
         loadGallery();
       } catch (err) {
         showError(uploadError, err);
@@ -153,59 +156,55 @@ function renderUploadedMedia(items) {
   }
 }
 
-document.getElementById('photo-input').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  clearBanner(uploadError);
-  try {
-    await api.uploadPublicMedia(slug, 'PHOTO', file);
-    const invitation = await api.getPublicInvitation(slug);
-    updateRemaining('photos-remaining', 'photo', invitation.photosRemaining);
-    toggleFileInput('photo-btn', 'photo-input', invitation.photosRemaining);
-    loadGallery();
-  } catch (err) {
-    showError(uploadError, err);
-  }
-  e.target.value = '';
-});
-
-document.getElementById('video-input').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  clearBanner(uploadError);
-  try {
-    await api.uploadPublicMedia(slug, 'VIDEO', file);
-    const invitation = await api.getPublicInvitation(slug);
-    updateRemaining('videos-remaining', 'video', invitation.videosRemaining);
-    toggleFileInput('video-btn', 'video-input', invitation.videosRemaining);
-    loadGallery();
-  } catch (err) {
-    showError(uploadError, err);
-  }
-  e.target.value = '';
-});
-
 // -----------------------------------------------------------------------
-// Static content — doesn't depend on the guest, so it doesn't wait on
-// init(). Gallery frames/images are language-independent; their captions
-// are filled in (and re-filled on every applyLanguage()) separately.
+// "About us" gallery — managed by the super admin (see super-admin.js),
+// read here with no auth. Doesn't depend on the guest, so it doesn't wait
+// on init(). Captions carry all three languages already, so a language
+// switch (applyLanguage) only needs to re-run updateAboutGalleryCaptions,
+// not re-fetch or rebuild the images.
 // -----------------------------------------------------------------------
+
+let aboutGalleryImages = [];
+
+async function loadAboutGallery() {
+  try {
+    aboutGalleryImages = await api.getGalleryImages();
+  } catch {
+    aboutGalleryImages = [];
+  }
+  buildAboutGallery();
+}
+
+function captionFor(image, lang) {
+  const code = normalizeLanguage(lang);
+  const caption = code === 'ru' ? image.captionRu : code === 'uz' ? image.captionUz : image.captionEn;
+  return caption || '';
+}
 
 function buildAboutGallery() {
+  const section = document.querySelector('.about');
   const box = document.getElementById('gallery');
-  GALLERY_IMAGES.forEach((src) => {
+  section.hidden = aboutGalleryImages.length === 0;
+  box.innerHTML = '';
+  aboutGalleryImages.forEach((image) => {
     const fig = document.createElement('figure');
     const frame = document.createElement('div');
-    frame.className = 'frame' + (src ? '' : ' empty');
-    if (src) {
-      const img = document.createElement('img');
-      img.src = src;
-      img.loading = 'lazy';
-      img.onerror = () => { frame.classList.add('empty'); img.remove(); };
-      frame.appendChild(img);
-    }
-    fig.append(frame, document.createElement('figcaption'));
+    frame.className = 'frame';
+    const img = document.createElement('img');
+    img.src = image.imageUrl;
+    img.loading = 'lazy';
+    img.onerror = () => { frame.classList.add('empty'); img.remove(); };
+    frame.appendChild(img);
+    const figcaption = document.createElement('figcaption');
+    figcaption.textContent = captionFor(image, currentLang);
+    fig.append(frame, figcaption);
     box.appendChild(fig);
+  });
+}
+
+function updateAboutGalleryCaptions() {
+  document.querySelectorAll('#gallery figcaption').forEach((el, i) => {
+    el.textContent = captionFor(aboutGalleryImages[i], currentLang);
   });
 }
 
@@ -248,7 +247,7 @@ function startCountdown() {
   if (today.hidden) timer = setInterval(tick, 1000);
 }
 
-buildAboutGallery();
+loadAboutGallery();
 applyLanguage(currentLang);
 startCountdown();
 init();

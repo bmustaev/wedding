@@ -66,6 +66,11 @@ const STRINGS = {
     'upload-photo-btn': 'Загрузить фото',
     'upload-video-btn': 'Загрузить видео',
 
+    'media-page-title': 'Фото и видео',
+    'media-page-message': 'Эта функция станет доступна в день свадьбы.',
+    'media-page-explanation': 'Мы включим загрузку фото и видео прямо 2 октября, чтобы вы могли поделиться моментами сразу с торжества. Загляните сюда снова в этот день.',
+    'back-to-invitation-label': '← Назад к приглашению',
+
     'footer-names': 'Бобиржон и Дилноза',
     'footer-meta': '2 октября 2026, Ташкент',
   },
@@ -114,6 +119,11 @@ const STRINGS = {
     'upload-photo-btn': 'Foto yuklash',
     'upload-video-btn': 'Video yuklash',
 
+    'media-page-title': 'Foto va video',
+    'media-page-message': "Bu funksiya to'y kuni ishga tushadi.",
+    'media-page-explanation': "Foto va video yuklashni aynan 2 oktyabr kuni yoqamiz, shunda siz to'ydagi lahzalarni darhol ulasha olasiz. Shu kuni bu yerga yana qaytib keling.",
+    'back-to-invitation-label': "← Taklifnomaga qaytish",
+
     'footer-names': 'Bobirjon va Dilnoza',
     'footer-meta': '2-oktabr 2026, Toshkent',
   },
@@ -161,6 +171,11 @@ const STRINGS = {
     'video-title': 'Videos',
     'upload-photo-btn': 'Upload photo',
     'upload-video-btn': 'Upload video',
+
+    'media-page-title': 'Photos and videos',
+    'media-page-message': 'This feature will be available on the wedding day.',
+    'media-page-explanation': "We'll turn on photo and video uploads on October 2nd itself, so you can share moments straight from the celebration. Check back here that day.",
+    'back-to-invitation-label': '← Back to the invitation',
 
     'footer-names': 'Bobirjon and Dilnoza',
     'footer-meta': 'October 2, 2026, Tashkent',
@@ -220,28 +235,6 @@ const COUNTDOWN_WORDS = {
 export function countdownWord(lang, unit, n) {
   const code = normalizeLanguage(lang);
   return COUNTDOWN_WORDS[code][unit](n);
-}
-
-const GALLERY_CAPTIONS = {
-  ru: [
-    'Первые кольца были из скрепок',
-    'Бегаем вместе по утрам',
-    'И гуляем, когда есть время',
-  ],
-  uz: [
-    'Birinchi uzuklarimiz skrepkadan edi',
-    'Har kuni ertalab birga yuguramiz',
-    'Va vaqt topilganda sayr qilamiz',
-  ],
-  en: [
-    'Our first rings were made of paperclips',
-    'We go running together every morning',
-    'And take walks whenever we find the time',
-  ],
-};
-
-export function galleryCaptionsFor(lang) {
-  return GALLERY_CAPTIONS[normalizeLanguage(lang)];
 }
 
 const MAP_QUERY = {

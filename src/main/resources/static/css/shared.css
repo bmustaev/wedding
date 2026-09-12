@@ -544,6 +544,32 @@ tbody tr:hover { background: var(--line-soft); }
 }
 
 /* ---------------------------------------------------------------------
+   Invitation gallery (super-admin panel)
+   --------------------------------------------------------------------- */
+
+.gallery-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 1rem;
+}
+.gallery-admin-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.9rem;
+  background: var(--paper-raised);
+}
+.gallery-admin-card img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius);
+  margin-bottom: 0.6em;
+}
+.gallery-admin-card .field {
+  margin-bottom: 0.5em;
+}
+
+/* ---------------------------------------------------------------------
    Seating
    --------------------------------------------------------------------- */
 

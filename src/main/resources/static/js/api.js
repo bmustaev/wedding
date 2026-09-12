@@ -191,11 +191,44 @@ export function getAdminGuests(adminId, { page = 0, size = 20, sort } = {}) {
 }
 
 // -----------------------------------------------------------------------
+// Super admin — invitation page's "about us" gallery
+// -----------------------------------------------------------------------
+
+export function listGalleryImagesAdmin() {
+  return request('/api/super-admin/gallery-images');
+}
+
+export function createGalleryImage(file, { captionRu = '', captionUz = '', captionEn = '' } = {}) {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('captionRu', captionRu);
+  form.append('captionUz', captionUz);
+  form.append('captionEn', captionEn);
+  return request('/api/super-admin/gallery-images', { method: 'POST', body: form, isForm: true });
+}
+
+export function updateGalleryImageCaptions(imageId, { captionRu, captionUz, captionEn }) {
+  return request(`/api/super-admin/gallery-images/${imageId}`, { method: 'PATCH', body: { captionRu, captionUz, captionEn } });
+}
+
+export function moveGalleryImage(imageId, direction) {
+  return request(`/api/super-admin/gallery-images/${imageId}/move-${direction}`, { method: 'PATCH' });
+}
+
+export function deleteGalleryImage(imageId) {
+  return request(`/api/super-admin/gallery-images/${imageId}`, { method: 'DELETE' });
+}
+
+// -----------------------------------------------------------------------
 // Public invitations (no auth)
 // -----------------------------------------------------------------------
 
 export function getPublicInvitation(slug) {
   return request(`/api/public/invitations/${slug}`, { auth: false });
+}
+
+export function getGalleryImages() {
+  return request('/api/public/gallery-images', { auth: false });
 }
 
 export function listPublicMedia(slug) {

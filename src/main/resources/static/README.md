@@ -8,8 +8,9 @@ Plain HTML/CSS/JS, no framework, no build step. Talks to the Spring Boot backend
 |---|---|---|
 | `login.html` | Admin / super admin | Sign in |
 | `dashboard.html` | Admin | Manage own guests, seating, bulk import |
-| `super-admin.html` | Super admin only | Manage admin accounts, view (read-only) any admin's guests |
-| `invitation.html` | Guest, no login | View invitation, upload photos/videos |
+| `super-admin.html` | Super admin only | Manage admin accounts, view (read-only) any admin's guests, manage the invitation page's "about us" gallery |
+| `invitation.html` | Guest, no login | View invitation. Photo/video upload isn't live yet — its buttons link to `media.html` |
+| `media.html` | Guest, no login | Placeholder for the future photo/video upload page; today it just explains uploads open on the wedding day |
 
 ## Running it locally
 

@@ -1,6 +1,8 @@
 package uz.bobnoza.wedding.service.storage;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -34,6 +36,11 @@ public class LocalFilesystemMediaStorageService implements MediaStorageService {
         file.transferTo(target);
 
         return key;
+    }
+
+    @Override
+    public Resource load(String storageKey) throws IOException {
+        return new UrlResource(baseDir.resolve(storageKey).toUri());
     }
 
     @Override
