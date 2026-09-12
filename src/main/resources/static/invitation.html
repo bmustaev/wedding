@@ -7,21 +7,23 @@
 <link rel="icon" href="/favicon.ico">
 <meta name="description" content="Приглашение на свадьбу Бобиржона и Дилнозы. 2 октября 2026, Ташкент, ресторан Santini.">
 <!-- Open Graph / Twitter card — lets Telegram (and other messengers) show
-     a preview image when this link is shared. Image path is root-relative
-     since this file is served under multiple paths (/invitation.html and,
-     via InvitationRedirectController's forward, /i/{slug}) and every
-     deployment shares one origin — see DEPLOYMENT.md. Static, not
-     per-guest: this page has no server-side templating to personalize it. -->
+     a preview image when this link is shared. og:image/twitter:image MUST
+     be a fully-qualified absolute URL — Telegram's crawler (and several
+     others) silently fails to show any preview image at all if it's given
+     a root-relative path instead, which is what was here before. That
+     means this hardcoded origin needs updating if the deployment domain
+     ever changes (see DEPLOYMENT.md's INVITATION_BASE_URL) — this page has
+     no server-side templating to keep it in sync automatically. -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="Бобиржон и Дилноза — 2 октября 2026">
 <meta property="og:description" content="Приглашение на свадьбу Бобиржона и Дилнозы. 2 октября 2026, Ташкент, ресторан Santini.">
-<meta property="og:image" content="/img/og-cover.jpg">
+<meta property="og:image" content="http://vps-6024.onecom-cloud.one/img/og-cover.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Бобиржон и Дилноза — 2 октября 2026">
 <meta name="twitter:description" content="Приглашение на свадьбу Бобиржона и Дилнозы. 2 октября 2026, Ташкент, ресторан Santini.">
-<meta name="twitter:image" content="/img/og-cover.jpg">
+<meta name="twitter:image" content="http://vps-6024.onecom-cloud.one/img/og-cover.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Marck+Script&display=swap" rel="stylesheet">
