@@ -34,30 +34,20 @@ const STRINGS = {
 
     'seat-eyebrow': 'Личное приглашение для',
     'seat-table-label': 'ваш стол',
+    'seat-note': 'Места пронумерованы, схема будет у входа в зал.',
 
     'cd-today': 'Сегодня! Ждём вас',
 
-    'invite-p1': '2 октября мы наконец-то женимся и очень хотим, чтобы вы были рядом. Без вас этот вечер будет совсем не тот.',
+    'invite-p1': '2 октября мы женимся — это особенный день для нас, и мы хотим, чтобы вы были рядом. Без вас этот вечер будет совсем не тот.',
     'invite-p2': 'Пусть этот вечер запомнится не тостами и церемониями, а тем, как хорошо нам было всем вместе.',
     'invite-sign': 'Обнимаем, Бобиржон и Дилноза',
 
     'about-title': 'Немного о нас',
     'about-lede': 'Пока фотограф не снял свадьбу — вот несколько кадров из обычной жизни.',
 
-    'day-title': 'Как пройдёт день',
-    'day-note': 'Время примерное, точное скажем ближе к дате.',
-    'sched1-title': 'Собираемся',
-    'sched1-desc': 'Встречаем гостей, наливаем чай, фотографируемся. Места пронумерованы, схема будет у входа в зал.',
-    'sched2-title': 'Наш выход',
-    'sched2-desc': 'Самый волнительный момент, просим быть в зале.',
-    'sched3-title': 'Танцы',
-    'sched3-desc': 'Диджей, живая музыка и национальные танцы. Обувь выбирайте с умом.',
-    'sched4-title': 'Расходимся',
-    'sched4-desc': 'Обнимаемся на прощание.',
-
     'where-title': 'Где',
     'venue-name': 'Ресторан Santini',
-    'venue-lede': 'Большой зал с летней террасой и танцполом в Юнусабадском районе. Парковка есть, места хватит всем.',
+    'venue-lede': 'Большой зал с танцполом в Юнусабадском районе.',
     'fact-address-label': 'Адрес',
     'fact-address-value': 'Ташкент, Юнусабадский район,<br>ул. Чинабад, 61/1',
     'fact-date-label': 'Дата',
@@ -76,16 +66,6 @@ const STRINGS = {
     'upload-photo-btn': 'Загрузить фото',
     'upload-video-btn': 'Загрузить видео',
 
-    'contacts-title': 'Контакты',
-    'contacts-lede': 'Если что-то непонятно — просто позвоните.',
-    'role-groom': 'Жених',
-    'name-groom': 'Бобиржон',
-    'role-bride': 'Невеста',
-    'name-bride': 'Дилноза',
-    'role-coordinator': 'Координатор',
-    'name-coordinator': 'Имя координатора',
-    'role-restaurant': 'Ресторан',
-
     'footer-names': 'Бобиржон и Дилноза',
     'footer-meta': '2 октября 2026, Ташкент',
   },
@@ -102,6 +82,7 @@ const STRINGS = {
 
     'seat-eyebrow': 'Shaxsiy taklifnoma',
     'seat-table-label': 'stolingiz',
+    'seat-note': "O'rindiqlar raqamlangan, sxema zal kirishida bo'ladi.",
 
     'cd-today': 'Bugun! Sizni kutmoqdamiz',
 
@@ -112,20 +93,9 @@ const STRINGS = {
     'about-title': 'Biz haqimizda',
     'about-lede': "Fotosuratchi to'yni suratga olguncha — mana kundalik hayotimizdan bir nechta lavha.",
 
-    'day-title': "Kun qanday o'tadi",
-    'day-note': "Vaqt taxminiy, aniq vaqtni sanaga yaqinroq aytamiz.",
-    'sched1-title': "To'planamiz",
-    'sched1-desc': "Mehmonlarni kutib olamiz, choy quyamiz, suratga tushamiz. O'rindiqlar raqamlangan, sxema zal kirishida bo'ladi.",
-    'sched2-title': 'Bizning chiqishimiz',
-    'sched2-desc': 'Eng hayajonli lahza — iltimos, shu vaqtga zalda bo\'ling.',
-    'sched3-title': 'Raqslar',
-    'sched3-desc': "DJ, jonli musiqa va milliy raqslar. Poyabzalni oqilona tanlang.",
-    'sched4-title': 'Tarqalamiz',
-    'sched4-desc': "Xayrlashuv quchoqlari bilan yakunlaymiz.",
-
     'where-title': 'Qayerda',
     'venue-name': 'Santini restorani',
-    'venue-lede': "Yunusobod tumanida joylashgan, yozgi terrasa va raqs maydonchasi bo'lgan katta zal. Avtoturargoh bor, hammaga joy yetadi.",
+    'venue-lede': "Yunusobod tumanida joylashgan, raqs maydonchasi bo'lgan katta zal.",
     'fact-address-label': 'Manzil',
     'fact-address-value': "Toshkent, Yunusobod tumani,<br>Chinobod ko'chasi, 61/1",
     'fact-date-label': 'Sana',
@@ -144,16 +114,6 @@ const STRINGS = {
     'upload-photo-btn': 'Foto yuklash',
     'upload-video-btn': 'Video yuklash',
 
-    'contacts-title': 'Aloqa',
-    'contacts-lede': "Biror narsa noaniq bo'lsa — qo'ng'iroq qiling.",
-    'role-groom': 'Kuyov',
-    'name-groom': 'Bobirjon',
-    'role-bride': 'Kelin',
-    'name-bride': 'Dilnoza',
-    'role-coordinator': 'Tadbir tashkilotchisi',
-    'name-coordinator': 'Tashkilotchi ismi',
-    'role-restaurant': 'Restoran',
-
     'footer-names': 'Bobirjon va Dilnoza',
     'footer-meta': '2-oktabr 2026, Toshkent',
   },
@@ -170,6 +130,7 @@ const STRINGS = {
 
     'seat-eyebrow': 'A personal invitation for',
     'seat-table-label': 'your table',
+    'seat-note': 'Seats are numbered — the seating chart will be at the hall entrance.',
 
     'cd-today': "Today! We can't wait to see you",
 
@@ -180,20 +141,9 @@ const STRINGS = {
     'about-title': 'A little about us',
     'about-lede': 'Until the photographer hands over the wedding shots, here are a few snapshots from everyday life.',
 
-    'day-title': 'How the day will go',
-    'day-note': "Times are approximate — we'll confirm exact timing closer to the date.",
-    'sched1-title': 'Gathering',
-    'sched1-desc': "We welcome guests, pour some tea, and take photos. Seats are numbered — the seating chart will be at the hall entrance.",
-    'sched2-title': 'Our entrance',
-    'sched2-desc': 'The most exciting moment — please be in the hall by then.',
-    'sched3-title': 'Dancing',
-    'sched3-desc': 'DJ, live music, and traditional dances. Choose your shoes wisely.',
-    'sched4-title': 'Farewell',
-    'sched4-desc': "We'll say our goodbyes with a hug.",
-
     'where-title': 'Where',
     'venue-name': 'Santini Restaurant',
-    'venue-lede': 'A large hall with a summer terrace and dance floor in the Yunusabad district. Parking is available, with plenty of room for everyone.',
+    'venue-lede': 'A large hall with a dance floor in the Yunusabad district.',
     'fact-address-label': 'Address',
     'fact-address-value': 'Tashkent, Yunusabad district,<br>Chinabad street, 61/1',
     'fact-date-label': 'Date',
@@ -211,16 +161,6 @@ const STRINGS = {
     'video-title': 'Videos',
     'upload-photo-btn': 'Upload photo',
     'upload-video-btn': 'Upload video',
-
-    'contacts-title': 'Contacts',
-    'contacts-lede': "If anything's unclear, just give us a call.",
-    'role-groom': 'Groom',
-    'name-groom': 'Bobirjon',
-    'role-bride': 'Bride',
-    'name-bride': 'Dilnoza',
-    'role-coordinator': 'Coordinator',
-    'name-coordinator': "Coordinator's name",
-    'role-restaurant': 'Restaurant',
 
     'footer-names': 'Bobirjon and Dilnoza',
     'footer-meta': 'October 2, 2026, Tashkent',

@@ -4,7 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Бобиржон и Дилноза — 2 октября 2026</title>
+<link rel="icon" href="/favicon.ico">
 <meta name="description" content="Приглашение на свадьбу Бобиржона и Дилнозы. 2 октября 2026, Ташкент, ресторан Santini.">
+<!-- Open Graph / Twitter card — lets Telegram (and other messengers) show
+     a preview image when this link is shared. Image path is root-relative
+     since this file is served under multiple paths (/invitation.html and,
+     via InvitationRedirectController's forward, /i/{slug}) and every
+     deployment shares one origin — see DEPLOYMENT.md. Static, not
+     per-guest: this page has no server-side templating to personalize it. -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Бобиржон и Дилноза — 2 октября 2026">
+<meta property="og:description" content="Приглашение на свадьбу Бобиржона и Дилнозы. 2 октября 2026, Ташкент, ресторан Santini.">
+<meta property="og:image" content="/img/og-cover.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Бобиржон и Дилноза — 2 октября 2026">
+<meta name="twitter:description" content="Приглашение на свадьбу Бобиржона и Дилнозы. 2 октября 2026, Ташкент, ресторан Santini.">
+<meta name="twitter:image" content="/img/og-cover.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Marck+Script&display=swap" rel="stylesheet">
@@ -14,7 +31,7 @@
   --paper:#f2ede7;         /* бумага страницы — тон взят из макета */
   --paper-deep:#ece4d6;    /* фон вокруг страницы */
   --ink:#463527;           /* основной текст */
-  --ink-soft:#7a6852;      /* второстепенный текст */
+  --ink-soft:#5c4a37;      /* второстепенный текст — затемнён для читаемости (было #7a6852, контраст ~4.2:1) */
   --gold:#bd9b57;
   --gold-pale:#dcc79a;
   --navy:#2f4257;
@@ -149,6 +166,7 @@ section{position:relative;padding:64px 28px}
 }
 
 /* ─────────────────────────────  ПРИГЛАШЕНИЕ  ───────────────────────────── */
+.invite{padding-top:12px}
 .invite .wrap{max-width:560px}
 .invite p{font-size:clamp(19px,2.5vw,21px)}
 .sign{font-family:var(--script);font-size:clamp(26px,4.5vw,34px);color:#3c2d20;margin-top:34px}
@@ -178,33 +196,6 @@ figcaption{
   margin-top:12px;font-style:italic;color:var(--ink-soft);
   font-size:17px;line-height:1.5;
 }
-
-/* ─────────────────────────────  РАСПИСАНИЕ  ───────────────────────────── */
-.day .wrap{max-width:640px}
-.note{color:var(--ink-soft);font-style:italic;font-size:18px;margin-bottom:34px}
-.tl{list-style:none;margin:0;padding:0}
-.tl li{
-  display:grid;grid-template-columns:96px 1fr;gap:22px;
-  padding:0 0 30px 0;position:relative;
-}
-.tl li:last-child{padding-bottom:0}
-.tl li::before{
-  content:"";position:absolute;left:107px;top:20px;bottom:-12px;
-  width:1px;background:var(--line);
-}
-.tl li:last-child::before{display:none}
-.tl li::after{
-  content:"";position:absolute;left:102px;top:9px;
-  width:10px;height:10px;background:var(--paper);
-  border:1px solid var(--gold);transform:rotate(45deg);
-}
-.tl time{
-  font-size:24px;font-weight:500;color:var(--terra);
-  text-align:right;line-height:1.3;
-  font-variant-numeric:tabular-nums;
-}
-.tl h3{font-size:22px;margin-bottom:2px}
-.tl p{font-size:18px;color:var(--ink-soft);line-height:1.6}
 
 /* ─────────────────────────────  МЕСТО  ───────────────────────────── */
 .where .wrap{max-width:600px}
@@ -244,20 +235,6 @@ figcaption{
 .card p{font-size:17px;color:var(--ink-soft);line-height:1.6;flex:1}
 .card .btn{margin-top:22px;align-self:center}
 
-/* ─────────────────────────────  КОНТАКТЫ  ───────────────────────────── */
-.contacts .wrap{max-width:640px}
-.people{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:36px;text-align:center}
-.person .role{
-  font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);
-}
-.person .nm{font-size:22px;margin:4px 0 3px}
-.person a{
-  text-decoration:none;border-bottom:1px solid var(--line);
-  font-size:18px;color:#3c2d20;font-variant-numeric:tabular-nums;
-  transition:border-color .2s ease;
-}
-.person a:hover,.person a:focus-visible{border-color:var(--terra)}
-
 /* ─────────────────────────────  ПОДВАЛ  ───────────────────────────── */
 footer{
   position:relative;padding:70px 28px 78px;text-align:center;
@@ -272,7 +249,6 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
 @media (max-width:760px){
   .gallery{grid-template-columns:1fr;gap:26px;max-width:340px;margin-inline:auto}
   .cards{grid-template-columns:1fr}
-  .people{grid-template-columns:1fr;gap:24px}
 }
 @media (max-width:640px){
   body{font-size:18px}
@@ -284,10 +260,6 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
   .cd{gap:7px;max-width:340px}
   .cd-cell{padding:12px 2px 10px}
   .cd-lab{font-size:10px;letter-spacing:.1em}
-  .tl li{grid-template-columns:64px 1fr;gap:18px}
-  .tl li::before{left:73px}
-  .tl li::after{left:69px;width:8px;height:8px;top:8px}
-  .tl time{font-size:20px}
   .facts li{flex-direction:column;gap:3px}
   .facts .v{text-align:left}
   .hero h1 .amp{display:block;padding:2px 0;font-size:.62em}
@@ -316,6 +288,7 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
 }
 .seat-members{color:var(--ink-soft);font-style:italic}
 .cd.cd-single{grid-template-columns:1fr;max-width:220px;margin:26px auto 0}
+.seat-note{color:var(--ink-soft);font-style:italic;font-size:15px;margin-top:20px}
 
 /* ─────────────────────────────  ЗАГРУЗКА ФОТО/ВИДЕО  ───────────────────────────── */
 .upload-banner{
@@ -402,6 +375,7 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
       <div class="cd cd-single" id="seat-table" hidden>
         <div class="cd-cell"><span class="cd-num" id="seat-table-num">—</span><span class="cd-lab" data-i18n="seat-table-label">ваш стол</span></div>
       </div>
+      <p class="seat-note" data-i18n="seat-note">Места пронумерованы, схема будет у входа в зал.</p>
     </div>
   </section>
 
@@ -436,47 +410,6 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
       <h2 class="script" data-i18n="about-title">Немного о нас</h2>
       <p class="lede" data-i18n="about-lede">Пока фотограф не снял свадьбу — вот несколько кадров из обычной жизни.</p>
       <div class="gallery" id="gallery"><!-- заполняется из константы GALLERY, подписи — из i18n.js --></div>
-    </div>
-  </section>
-
-  <!-- ══════════ 5. КАК ПРОЙДЁТ ДЕНЬ ══════════ -->
-  <section class="day">
-    <i class="orn s-left flip-x" style="top:0;right:0"></i>
-    <div class="wrap">
-      <div class="center">
-        <h2 class="script" data-i18n="day-title">Как пройдёт день</h2>
-        <p class="note" data-i18n="day-note">Время примерное, точное скажем ближе к дате.</p>
-      </div>
-      <ol class="tl">
-        <li>
-          <time datetime="18:00">18:00</time>
-          <div>
-            <h3 data-i18n="sched1-title">Собираемся</h3>
-            <p data-i18n="sched1-desc">Встречаем гостей, наливаем чай, фотографируемся. Места пронумерованы, схема будет у входа в зал.</p>
-          </div>
-        </li>
-        <li>
-          <time datetime="19:00">19:00</time>
-          <div>
-            <h3 data-i18n="sched2-title">Наш выход</h3>
-            <p data-i18n="sched2-desc">Самый волнительный момент, просим быть в зале.</p>
-          </div>
-        </li>
-        <li>
-          <time datetime="20:00">20:00</time>
-          <div>
-            <h3 data-i18n="sched3-title">Танцы</h3>
-            <p data-i18n="sched3-desc">Диджей, живая музыка и национальные танцы. Обувь выбирайте с умом.</p>
-          </div>
-        </li>
-        <li>
-          <time datetime="22:00">22:00</time>
-          <div>
-            <h3 data-i18n="sched4-title">Расходимся</h3>
-            <p data-i18n="sched4-desc">Обнимаемся на прощание.</p>
-          </div>
-        </li>
-      </ol>
     </div>
   </section>
 
@@ -531,37 +464,6 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
             <input type="file" id="video-input" accept="video/*">
           </label>
           <div class="gallery-grid" id="video-gallery"></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════════ 8. КОНТАКТЫ ══════════ -->
-  <section class="contacts">
-    <div class="wrap center">
-      <h2 class="script" data-i18n="contacts-title">Контакты</h2>
-      <p class="lede" data-i18n="contacts-lede">Если что-то непонятно — просто позвоните.</p>
-      <div class="people">
-        <div class="person">
-          <p class="role" data-i18n="role-groom">Жених</p>
-          <p class="nm" data-i18n="name-groom">Бобиржон</p>
-          <a href="tel:+998900000000">+998 90 000-00-00</a>
-        </div>
-        <div class="person">
-          <p class="role" data-i18n="role-bride">Невеста</p>
-          <p class="nm" data-i18n="name-bride">Дилноза</p>
-          <a href="tel:+998900000000">+998 90 000-00-00</a>
-        </div>
-        <div class="person">
-          <p class="role" data-i18n="role-coordinator">Координатор</p>
-          <!-- впишите имя координатора -->
-          <p class="nm" data-i18n="name-coordinator">Имя координатора</p>
-          <a href="tel:+998900000000">+998 90 000-00-00</a>
-        </div>
-        <div class="person">
-          <p class="role" data-i18n="role-restaurant">Ресторан</p>
-          <p class="nm">Santini</p>
-          <a href="tel:+998909360005">+998 90 936-00-05</a>
         </div>
       </div>
     </div>
