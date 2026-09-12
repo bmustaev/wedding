@@ -13,19 +13,14 @@
 }
 
 .hall-map {
-  display: grid;
-  grid-template-columns: 20rem 20rem;
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  grid-template-areas:
-    "head head"
-    "bride groom";
   gap: 1.5rem 2rem;
   margin-top: 1rem;
 }
 
-.hall-head-zone { grid-area: head; }
-.hall-bride-zone { grid-area: bride; }
-.hall-groom-zone { grid-area: groom; }
+.hall-bride-zone, .hall-groom-zone { width: 20rem; }
 
 .hall-side-header {
   display: flex;
@@ -34,18 +29,6 @@
   margin-bottom: 0.9rem;
 }
 .hall-side-header h2 { margin: 0; }
-
-.hall-head-zone {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 0.5rem;
-}
-.hall-head-zone .hall-table-card {
-  max-width: 16rem;
-  width: 100%;
-  border-color: var(--brass);
-  background: var(--brass-soft);
-}
 
 .hall-tables-column {
   display: flex;
@@ -258,14 +241,63 @@
 }
 
 @media (max-width: 900px) {
-  .hall-map {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "head"
-      "bride"
-      "groom";
-  }
+  .hall-bride-zone, .hall-groom-zone { width: 100%; max-width: 24rem; }
   .hall-tables-column { align-items: center; }
   .hall-table-card { max-width: 24rem; }
   .unassigned-tray { left: 0; }
+}
+
+/* ---------------------------------------------------------------------
+   "Схема зала" — read-only diagram of the whole physical hall (a
+   rectangle: the couple's table at the top, 4 round tables down each
+   side). Purely informational, unlike the drag-and-drop board above.
+   --------------------------------------------------------------------- */
+
+.hall-diagram {
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.5rem 1.25rem;
+  background: var(--paper-raised);
+}
+.hall-diagram-couple {
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border: 1px solid var(--brass);
+  background: var(--brass-soft);
+  border-radius: var(--radius);
+  padding: 0.6em 1em;
+  margin: 0 auto 1.75rem;
+  max-width: 12rem;
+}
+.hall-diagram-floor {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+.hall-diagram-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+.hall-diagram-table {
+  width: 3.4rem;
+  height: 3.4rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.hall-diagram-dance-floor {
+  flex: 1;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  font-style: italic;
 }

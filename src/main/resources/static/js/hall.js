@@ -40,6 +40,10 @@ const hallError = document.getElementById('hall-error');
 const hallLoading = document.getElementById('hall-loading');
 const hallMap = document.getElementById('hall-map');
 
+// Kept around so the "Схема зала" popup can render on demand from the same
+// data the board already has, instead of firing a second request.
+let latestHallView = null;
+
 async function loadHall() {
   clearBanner(hallError);
   hallLoading.hidden = false;
@@ -56,7 +60,24 @@ async function loadHall() {
 }
 
 function renderHall(view) {
-  document.getElementById('hall-head-zone').innerHTML = view.headTable ? tableCardHtml(view.headTable, isSuperAdmin()) : '';
+  latestHallView = view;
+
+  const brideZone = document.querySelector('.hall-bride-zone');
+  const groomZone = document.querySelector('.hall-groom-zone');
+  // The head table isn't shown as a seatable card here at all (see
+  // tableCardHtml — it never receives guests via this board); its
+  // position is only ever shown in the read-only "Схема зала" diagram.
+  // Regular admins only ever work their own side — the other side's
+  // board isn't rendered at all, not just uneditable, since drag-and-drop
+  // has nothing useful to offer them there. Super admin still gets both.
+  if (isSuperAdmin()) {
+    brideZone.hidden = false;
+    groomZone.hidden = false;
+  } else {
+    brideZone.hidden = callerSide !== 'BRIDE';
+    groomZone.hidden = callerSide !== 'GROOM';
+  }
+
   document.getElementById('hall-bride-column').innerHTML =
     view.brideTables.map((t) => tableCardHtml(t, isSuperAdmin() || callerSide === 'BRIDE')).join('') + addTableButtonHtml('BRIDE');
   document.getElementById('hall-groom-column').innerHTML =
@@ -74,20 +95,12 @@ function addTableButtonHtml(side) {
 }
 
 function tableCardHtml(table, isOwnSide) {
-  const isHead = table.side === 'HEAD';
   const chips = table.guests.map((g) => guestChipHtml(g)).join('');
-  const removeBtn = isOwnSide && !isHead
+  const removeBtn = isOwnSide
     ? `<button type="button" class="hall-table-remove" data-table-id="${table.id}">${t('remove-table-btn')}</button>`
     : '';
-  // The head table is the couple's own — never a guest drop target (see
-  // wireTableCardEvents' `allowed` check), so instead of a "N of M seats
-  // left" status line it just shows "Reserved for the couple" once, as
-  // the empty-chip-list placeholder (the same spot "Drop a guest here"
-  // occupies for other tables) rather than duplicating it in both spots.
-  const seatsLineHtml = isHead
-    ? ''
-    : `<div class="hall-table-seats ${table.seatsLeft === 0 ? 'full' : ''}">${t('seats-left-template', { n: table.seatsLeft, capacity: table.capacity })}</div>`;
-  const emptyLabel = isHead ? t('head-table-reserved-label') : t('drop-guest-here');
+  const seatsLineHtml = `<div class="hall-table-seats ${table.seatsLeft === 0 ? 'full' : ''}">${t('seats-left-template', { n: table.seatsLeft, capacity: table.capacity })}</div>`;
+  const emptyLabel = t('drop-guest-here');
   return `
     <div class="hall-table-card" data-table-id="${table.id}" data-side="${table.side}">
       <div class="hall-table-header">
@@ -221,11 +234,7 @@ function wireTableCardEvents() {
   });
 
   document.querySelectorAll('.hall-table-card').forEach((card) => {
-    const side = card.dataset.side;
-    // The head table is reserved for the couple themselves — never a
-    // valid seat for a guest, regardless of side or super-admin status.
-    const isHead = side === 'HEAD';
-    const allowed = !isHead && (isSuperAdmin() || side === callerSide);
+    const allowed = isSuperAdmin() || card.dataset.side === callerSide;
 
     card.addEventListener('dragover', (e) => {
       if (!draggedGuestId) return;
@@ -241,10 +250,7 @@ function wireTableCardEvents() {
       card.classList.remove('droppable-active', 'droppable-denied');
       if (!draggedGuestId) return;
       if (!allowed) {
-        showError(hallError, {
-          message: isHead ? t('confirm-head-table-reserved') : t('confirm-own-side-only'),
-          details: [],
-        });
+        showError(hallError, { message: t('confirm-own-side-only'), details: [] });
         return;
       }
       await handleAssign(draggedGuestId, card.dataset.tableId);
@@ -340,6 +346,39 @@ function wireAddTableButtons() {
     });
   });
 }
+
+// -----------------------------------------------------------------------
+// "Схема зала" — read-only diagram of the whole physical hall (both
+// sides' tables plus the head table's position), regardless of which
+// side(s) the board above is currently showing. Built from the same
+// hall-view data already fetched for the board, not a separate request.
+// -----------------------------------------------------------------------
+
+function diagramTableHtml(table) {
+  return `<div class="hall-diagram-table" title="${escapeHtml(table.label)}">${escapeHtml(table.label)}</div>`;
+}
+
+function renderHallDiagram(view) {
+  const coupleLabel = view.headTable ? t('hall-diagram-couple-table') : '';
+  document.getElementById('hall-diagram-content').innerHTML = `
+    <div class="hall-diagram">
+      <div class="hall-diagram-couple">${escapeHtml(coupleLabel)}</div>
+      <div class="hall-diagram-floor">
+        <div class="hall-diagram-column">${view.brideTables.map(diagramTableHtml).join('')}</div>
+        <div class="hall-diagram-dance-floor">${escapeHtml(t('hall-diagram-dance-floor'))}</div>
+        <div class="hall-diagram-column">${view.groomTables.map(diagramTableHtml).join('')}</div>
+      </div>
+    </div>`;
+}
+
+const hallDiagramBackdrop = document.getElementById('hall-diagram-backdrop');
+
+document.getElementById('hall-diagram-btn').addEventListener('click', () => {
+  if (latestHallView) renderHallDiagram(latestHallView);
+  hallDiagramBackdrop.hidden = false;
+});
+document.getElementById('hall-diagram-close').addEventListener('click', () => { hallDiagramBackdrop.hidden = true; });
+document.getElementById('hall-diagram-close-btn').addEventListener('click', () => { hallDiagramBackdrop.hidden = true; });
 
 // -----------------------------------------------------------------------
 // Add guest — opens the same full editor used for double-click/edit

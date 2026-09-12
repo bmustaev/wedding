@@ -125,7 +125,7 @@ const DICT = {
 
     'hall-doc-title': 'Hall — Wedding Admin',
     'hall-heading': 'Wedding hall',
-    'hall-subtitle': 'Drag guests between your own side’s tables. The other side’s tables are visible but not yours to arrange.',
+    'hall-subtitle': 'Drag guests onto tables to seat them.',
     'import-list-btn': 'Import list',
     'hall-loading': 'Loading the hall…',
     'bride-tables-heading': 'Bride’s tables',
@@ -138,8 +138,10 @@ const DICT = {
     'everyone-seated': 'Everyone is seated — nice work.',
     'confirm-remove-table': 'Remove this table? It must be empty first.',
     'confirm-own-side-only': 'You can only seat your own guests at tables on your own side.',
-    'confirm-head-table-reserved': 'The head table is reserved for the couple — guests can’t be seated there.',
-    'head-table-reserved-label': 'Reserved for the couple',
+    'hall-diagram-btn': 'Hall diagram',
+    'hall-diagram-title': 'Hall diagram',
+    'hall-diagram-couple-table': 'Newlyweds’ table',
+    'hall-diagram-dance-floor': 'Dance floor',
 
     'super-admin-doc-title': 'Admins — Wedding Admin',
     'admins-heading': 'Admins',
@@ -286,7 +288,7 @@ const DICT = {
 
     'hall-doc-title': 'Зал — Свадебный админ',
     'hall-heading': 'Свадебный зал',
-    'hall-subtitle': 'Перетаскивайте гостей между столами своей стороны. Столы другой стороны видны, но недоступны для изменения.',
+    'hall-subtitle': 'Перетаскивайте гостей за столы, чтобы рассадить их.',
     'import-list-btn': 'Импорт списка',
     'hall-loading': 'Загрузка зала…',
     'bride-tables-heading': 'Столы невесты',
@@ -299,8 +301,10 @@ const DICT = {
     'everyone-seated': 'Все гости рассажены — отлично!',
     'confirm-remove-table': 'Удалить этот стол? Сначала он должен быть пустым.',
     'confirm-own-side-only': 'Вы можете рассаживать своих гостей только за столы своей стороны.',
-    'confirm-head-table-reserved': 'Стол молодожёнов зарезервирован для жениха и невесты — гостей сюда сажать нельзя.',
-    'head-table-reserved-label': 'Зарезервирован для молодожёнов',
+    'hall-diagram-btn': 'Схема зала',
+    'hall-diagram-title': 'Схема зала',
+    'hall-diagram-couple-table': 'Стол молодожёнов',
+    'hall-diagram-dance-floor': 'Танцпол',
 
     'super-admin-doc-title': 'Администраторы — Свадебный админ',
     'admins-heading': 'Администраторы',

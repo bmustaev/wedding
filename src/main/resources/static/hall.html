@@ -39,6 +39,7 @@
           <p class="field-hint" style="margin:0;" data-i18n="hall-subtitle">Drag guests between your own side's tables. The other side's tables are visible but not yours to arrange.</p>
         </div>
         <div class="actions">
+          <button type="button" class="btn btn-sm" id="hall-diagram-btn" data-i18n="hall-diagram-btn">Схема зала</button>
           <button type="button" class="btn btn-sm" id="hall-import-btn" data-i18n="import-list-btn">Import list</button>
           <button type="button" class="btn btn-primary" id="hall-add-guest-btn" data-i18n="add-guest-btn">Add guest</button>
         </div>
@@ -48,7 +49,6 @@
       <div id="hall-loading" class="loading-state"><span class="spinner"></span><span data-i18n="hall-loading">Loading the hall…</span></div>
 
       <div id="hall-map" class="hall-map" hidden>
-        <div class="hall-head-zone" id="hall-head-zone"></div>
         <div class="hall-bride-zone">
           <div class="hall-side-header">
             <h2 data-i18n="bride-tables-heading">Bride's tables</h2>
@@ -73,6 +73,20 @@
       <span id="unassigned-tray-caret">&#9650;</span>
     </div>
     <div class="unassigned-tray-body" id="unassigned-tray-body"></div>
+  </div>
+
+  <!-- ============================= HALL DIAGRAM POPUP ============================= -->
+  <div class="modal-backdrop" id="hall-diagram-backdrop" hidden>
+    <div class="modal" style="max-width:34rem;">
+      <div class="modal-header">
+        <h2 data-i18n="hall-diagram-title">Схема зала</h2>
+        <button type="button" class="modal-close" id="hall-diagram-close" aria-label="Close">&times;</button>
+      </div>
+      <div id="hall-diagram-content"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn" id="hall-diagram-close-btn" data-i18n="close-btn">Close</button>
+      </div>
+    </div>
   </div>
 
   <!-- ============================= GUEST EDITOR MODAL (shared with dashboard.html) ============================= -->
