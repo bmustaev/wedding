@@ -28,7 +28,7 @@ const STRINGS = {
     'error-body': 'Проверьте ссылку, которую вам прислали, или свяжитесь с молодожёнами.',
 
     'hero-eyebrow': 'Свадьба',
-    'hero-names': 'Бобура<br><span class="amp">и</span><br>Дилнозы',
+    'hero-names': 'Бобура<br><span class="amp">и</span><br>Дильнозы',
     'hero-when': '2 октября 2026, пятница<br><b>18:00</b>',
     'hero-place': 'Ташкент, ресторан Santini',
 
@@ -39,9 +39,9 @@ const STRINGS = {
     'cd-today': 'Сегодня! Ждём вас',
 
     'invite-p1': '2 октября мы женимся — это особенный день для нас, и мы хотим, чтобы вы были рядом. Без вас этот вечер будет совсем не тот.',
-    'invite-p2': 'Пусть этот вечер запомнится не тостами и церемониями, а тем, как хорошо нам было всем вместе.',
+    'invite-p2': 'Пусть этот вечер запомнится теплом, смехом и тем, что за одним столом собрались самые родные и близкие.',
     'invite-no-children': 'Небольшая просьба: этот вечер мы хотим провести в кругу взрослых, поэтому, пожалуйста, приходите без детей. Спасибо за понимание!',
-    'invite-sign': 'Обнимаем, Бобур и Дилноза',
+    'invite-sign': 'Обнимаем, Бобур и Дильноза',
 
     'about-title': 'Немного о нас',
     'about-lede': 'Пока фотограф не снял свадьбу — вот несколько кадров из обычной жизни.',
@@ -72,7 +72,7 @@ const STRINGS = {
     'media-page-explanation': 'Мы включим загрузку фото и видео прямо 2 октября, чтобы вы могли поделиться моментами сразу с торжества. Загляните сюда снова в этот день.',
     'back-to-invitation-label': '← Назад к приглашению',
 
-    'footer-names': 'Бобур и Дилноза',
+    'footer-names': 'Бобур и Дильноза',
     'footer-meta': '2 октября 2026, Ташкент',
   },
 
@@ -93,7 +93,7 @@ const STRINGS = {
     'cd-today': 'Bugun! Sizni kutmoqdamiz',
 
     'invite-p1': "2-oktabr nihoyat turmush qurmoqchimiz va juda xohlaymizki, siz ham yonimizda bo'lsangiz. Sizsiz bu oqshom butunlay boshqacha bo'lardi.",
-    'invite-p2': "Ushbu oqshom baland nutqlar bilan emas, balki barchamiz birga o'tkazgan yaxshi damlar bilan yodda qolsin.",
+    'invite-p2': "Ushbu oqshom iliqlik, kulgi va bir dasturxon atrofida eng aziz va yaqinlarimiz yig'ilgani bilan yodda qolsin.",
     'invite-no-children': "Kichik bir iltimos: bu oqshomni faqat kattalar davrasida o'tkazishni xohlaymiz, shuning uchun farzandlaringizni uyda qoldirib kelishingizni so'raymiz. Tushunganingiz uchun rahmat!",
     'invite-sign': "Quchoqlab, Bobur va Dilnoza",
 
@@ -147,7 +147,7 @@ const STRINGS = {
     'cd-today': "Today! We can't wait to see you",
 
     'invite-p1': "On October 2nd we're finally getting married, and we'd love for you to be there with us. This evening just wouldn't be the same without you.",
-    'invite-p2': 'Let this evening be remembered not for toasts and ceremony, but for how good it felt to simply be together.',
+    'invite-p2': 'Let this evening be remembered for its warmth, laughter, and having our nearest and dearest gathered around one table.',
     'invite-no-children': "One small request: we'd love for this evening to be an adults-only celebration, so please leave the little ones at home. Thank you for understanding!",
     'invite-sign': 'With love, Bobur and Dilnoza',
 
@@ -290,7 +290,7 @@ export function remainingMediaText(lang, kind, n) {
 }
 
 const DOCUMENT_TITLE_TEMPLATE = {
-  ru: (name) => `${name} — приглашение на свадьбу Бобура и Дилнозы`,
+  ru: (name) => `${name} — приглашение на свадьбу Бобура и Дильнозы`,
   uz: (name) => `${name} — Bobur va Dilnoza to'yiga taklifnoma`,
   en: (name) => `${name} — invitation to Bobur and Dilnoza's wedding`,
 };
