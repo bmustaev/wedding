@@ -162,7 +162,7 @@ function renderAdminGuests(pageResponse) {
     <tr>
       <td>${escapeHtml(g.displayName)}${g.isGroup ? ` <span class="badge">${t('badge-group')}</span>` : ''}</td>
       <td>${g.partySize}</td>
-      <td>${g.tableNumber != null ? t('table-n', { n: g.tableNumber }) : '—'}</td>
+      <td>${g.tableLabel ? escapeHtml(g.tableLabel) : '—'}</td>
       <td>${g.firstViewedAt ? t('status-viewed') : t('status-not-viewed')}</td>
     </tr>`).join('');
 

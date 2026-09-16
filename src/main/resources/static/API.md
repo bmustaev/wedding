@@ -128,6 +128,7 @@ curl http://localhost:8080/api/guests?page=0&size=20 \
       "invitationUrl": "http://localhost:8080/i/a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
       "tableId": "b2c3d4e5-f6a1-b2c3-d4e5-f6a1b2c3d4e5",
       "tableNumber": 1,
+      "tableLabel": "1D",
       "pageGeneratedAt": "2026-09-01T10:00:00Z",
       "firstViewedAt": "2026-09-01T18:22:00Z",
       "createdAt": "2026-09-01T10:00:00Z"
@@ -237,7 +238,7 @@ Bumps `pageGeneratedAt` to now without changing any content. Returns the updated
 }
 ```
 
-**Response `200`:** the updated `GuestResponse` with `tableId`/`tableNumber` set.
+**Response `200`:** the updated `GuestResponse` with `tableId`/`tableNumber`/`tableLabel` set.
 
 **Response `403`** if the table belongs to the other side:
 ```json
@@ -265,7 +266,7 @@ Bumps `pageGeneratedAt` to now without changing any content. Returns the updated
 
 **Auth:** admin (must own the guest)
 
-Removes the guest's table assignment. Returns the updated `GuestResponse` (with `tableId`/`tableNumber` now `null`).
+Removes the guest's table assignment. Returns the updated `GuestResponse` (with `tableId`/`tableNumber`/`tableLabel` now `null`).
 
 ---
 

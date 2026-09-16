@@ -16,6 +16,7 @@ public record GuestResponse(
         String invitationUrl,
         UUID tableId,
         Integer tableNumber,
+        String tableLabel,
         Instant pageGeneratedAt,
         Instant firstViewedAt,
         Instant createdAt

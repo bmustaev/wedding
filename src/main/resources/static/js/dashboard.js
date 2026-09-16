@@ -74,7 +74,7 @@ function renderGuestsTable(pageResponse) {
     <tr data-id="${g.id}">
       <td>${escapeHtml(g.displayName)}${g.isGroup ? ` <span class="badge">${t('badge-group')}</span>` : ''}</td>
       <td>${g.partySize}</td>
-      <td>${g.tableNumber != null ? t('table-n', { n: g.tableNumber }) : '—'}</td>
+      <td>${g.tableLabel ? escapeHtml(g.tableLabel) : '—'}</td>
       <td>${g.firstViewedAt ? t('status-viewed') : t('status-not-viewed')}</td>
       <td class="cell-actions">
         <button type="button" class="btn btn-sm btn-icon copy-link-btn" data-url="${escapeHtml(g.invitationUrl)}" title="${escapeHtml(t('copy-link-btn'))}" aria-label="${escapeHtml(t('copy-link-btn'))}">${ICON_COPY_LINK}</button>

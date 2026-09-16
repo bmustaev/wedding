@@ -187,6 +187,7 @@ public class GuestService {
         SeatingTable table = guest.getTable();
         UUID tableId = table != null ? table.getId() : null;
         Integer tableNumber = table != null ? table.getTableNumber() : null;
+        String tableLabel = table != null ? table.getLabel() : null;
 
         return new GuestResponse(
                 guest.getId(),
@@ -200,6 +201,7 @@ public class GuestService {
                 invitationBaseUrl + "/" + guest.getLandingSlug(),
                 tableId,
                 tableNumber,
+                tableLabel,
                 guest.getPageGeneratedAt(),
                 guest.getFirstViewedAt(),
                 guest.getCreatedAt());

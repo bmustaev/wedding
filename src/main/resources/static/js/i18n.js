@@ -28,7 +28,7 @@ const STRINGS = {
     'error-body': 'Проверьте ссылку, которую вам прислали, или свяжитесь с молодожёнами.',
 
     'hero-eyebrow': 'Свадьба',
-    'hero-names': 'Бобиржон<span class="amp">и</span>Дилноза',
+    'hero-names': 'Бобиржон<br><span class="amp">и</span><br>Дилноза',
     'hero-when': '2 октября 2026, пятница<br><b>18:00</b>',
     'hero-place': 'Ташкент, ресторан Santini',
 
@@ -40,6 +40,7 @@ const STRINGS = {
 
     'invite-p1': '2 октября мы женимся — это особенный день для нас, и мы хотим, чтобы вы были рядом. Без вас этот вечер будет совсем не тот.',
     'invite-p2': 'Пусть этот вечер запомнится не тостами и церемониями, а тем, как хорошо нам было всем вместе.',
+    'invite-no-children': 'Небольшая просьба: этот вечер мы хотим провести в кругу взрослых, поэтому, пожалуйста, приходите без детей. Спасибо за понимание!',
     'invite-sign': 'Обнимаем, Бобиржон и Дилноза',
 
     'about-title': 'Немного о нас',
@@ -81,7 +82,7 @@ const STRINGS = {
     'error-body': "Sizga yuborilgan havolani tekshiring yoki kelin-kuyov bilan bog'laning.",
 
     'hero-eyebrow': "To'y",
-    'hero-names': 'Bobirjon<span class="amp">va</span>Dilnoza',
+    'hero-names': 'Bobirjon<br><span class="amp">va</span><br>Dilnoza',
     'hero-when': '2-oktabr 2026, juma<br><b>18:00</b>',
     'hero-place': 'Toshkent, Santini restorani',
 
@@ -93,6 +94,7 @@ const STRINGS = {
 
     'invite-p1': "2-oktabr nihoyat turmush qurmoqchimiz va juda xohlaymizki, siz ham yonimizda bo'lsangiz. Sizsiz bu oqshom butunlay boshqacha bo'lardi.",
     'invite-p2': "Ushbu oqshom baland nutqlar bilan emas, balki barchamiz birga o'tkazgan yaxshi damlar bilan yodda qolsin.",
+    'invite-no-children': "Kichik bir iltimos: bu oqshomni faqat kattalar davrasida o'tkazishni xohlaymiz, shuning uchun farzandlaringizni uyda qoldirib kelishingizni so'raymiz. Tushunganingiz uchun rahmat!",
     'invite-sign': "Quchoqlab, Bobirjon va Dilnoza",
 
     'about-title': 'Biz haqimizda',
@@ -134,7 +136,7 @@ const STRINGS = {
     'error-body': "Double-check the link you were sent, or reach out to the couple.",
 
     'hero-eyebrow': 'Wedding',
-    'hero-names': 'Bobirjon<span class="amp">and</span>Dilnoza',
+    'hero-names': 'Bobirjon<br><span class="amp">and</span><br>Dilnoza',
     'hero-when': 'October 2, 2026, Friday<br><b>18:00</b>',
     'hero-place': 'Tashkent, Santini restaurant',
 
@@ -146,6 +148,7 @@ const STRINGS = {
 
     'invite-p1': "On October 2nd we're finally getting married, and we'd love for you to be there with us. This evening just wouldn't be the same without you.",
     'invite-p2': 'Let this evening be remembered not for toasts and ceremony, but for how good it felt to simply be together.',
+    'invite-no-children': "One small request: we'd love for this evening to be an adults-only celebration, so please leave the little ones at home. Thank you for understanding!",
     'invite-sign': 'With love, Bobirjon and Dilnoza',
 
     'about-title': 'A little about us',

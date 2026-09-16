@@ -99,11 +99,12 @@ section{position:relative;padding:64px 28px}
 .hero h1 .amp{display:inline-block;padding:0 .12em;color:var(--gold);font-size:.78em;vertical-align:.06em}
 .hero .when{
   font-size:clamp(19px,2.8vw,24px);
+  font-weight:600;
   letter-spacing:.02em;
   margin-top:22px;
 }
-.hero .when b{font-weight:500}
-.hero .place{color:var(--ink-soft);font-size:clamp(17px,2.4vw,19px);margin-top:4px}
+.hero .when b{font-weight:700}
+.hero .place{color:var(--ink-soft);font-size:clamp(17px,2.4vw,19px);font-weight:600;margin-top:4px}
 
 /* ─────────────────────────────  ОТСЧЁТ  ───────────────────────────── */
 .countdown{padding-top:8px;padding-bottom:56px}
@@ -234,7 +235,7 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
   .cd-lab{font-size:10px;letter-spacing:.1em}
   .facts li{flex-direction:column;gap:3px}
   .facts .v{text-align:left}
-  .hero h1 .amp{display:block;padding:2px 0;font-size:.62em}
+  .hero h1 .amp{font-size:.62em}
   .hero{padding-bottom:56px}
 }
 
@@ -255,7 +256,7 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
 /* ─────────────────────────────  ВАШЕ МЕСТО  ───────────────────────────── */
 .seat{padding-top:8px}
 .eyebrow{
-  font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);
+  font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);
   margin-bottom:10px;
 }
 .seat-members{color:var(--ink-soft);font-style:italic}
