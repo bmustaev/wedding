@@ -180,8 +180,8 @@ figcaption{
 }
 .facts li:first-child{border-top:1px solid var(--line)}
 .facts .k{
-  flex:0 0 auto;font-size:13px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--ink-soft);
+  flex:0 0 auto;font-size:13px;letter-spacing:.12em;text-transform:uppercase;
+  font-weight:600;color:var(--ink);
 }
 .facts .v{text-align:right;font-size:18px;line-height:1.4}
 .maps{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:34px}
@@ -233,7 +233,7 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
   .cd{gap:7px;max-width:340px}
   .cd-cell{padding:12px 2px 10px}
   .cd-lab{font-size:10px;letter-spacing:.1em}
-  .facts li{flex-direction:column;gap:3px}
+  .facts li{flex-direction:column;gap:6px}
   .facts .v{text-align:left}
   .hero h1 .amp{font-size:.62em}
   .hero{padding-bottom:56px}
@@ -270,6 +270,8 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
 }
 .upload-remaining{font-size:14px;color:var(--ink-soft);margin:-2px 0 16px}
 .upload-remaining.at-cap{color:var(--terra)}
+.upload-remaining:empty{display:none}
+.upload-remaining:empty + .file-btn{margin-top:10px}
 .file-btn{cursor:pointer}
 .file-btn.is-disabled{opacity:.5;pointer-events:none}
 .gallery-grid{

@@ -48,7 +48,6 @@ const STRINGS = {
 
     'where-title': 'Где',
     'venue-name': 'Ресторан Santini',
-    'venue-lede': 'Большой зал с танцполом в Юнусабадском районе.',
     'fact-address-label': 'Адрес',
     'fact-address-value': 'Ташкент, Юнусабадский район,<br>ул. Чинабад, 61/1',
     'fact-date-label': 'Дата',
@@ -56,7 +55,7 @@ const STRINGS = {
     'fact-time-label': 'Время',
     'fact-time-value': '18:00',
     'fact-parking-label': 'Парковка',
-    'fact-parking-value': 'бесплатная, на территории ресторана',
+    'fact-parking-value': 'на территории ресторана',
     'map-yandex-label': 'Яндекс.Карты',
     'map-google-label': 'Google Карты',
 
@@ -102,7 +101,6 @@ const STRINGS = {
 
     'where-title': 'Qayerda',
     'venue-name': 'Santini restorani',
-    'venue-lede': "Yunusobod tumanida joylashgan, raqs maydonchasi bo'lgan katta zal.",
     'fact-address-label': 'Manzil',
     'fact-address-value': "Toshkent, Yunusobod tumani,<br>Chinobod ko'chasi, 61/1",
     'fact-date-label': 'Sana',
@@ -156,7 +154,6 @@ const STRINGS = {
 
     'where-title': 'Where',
     'venue-name': 'Santini Restaurant',
-    'venue-lede': 'A large hall with a dance floor in the Yunusabad district.',
     'fact-address-label': 'Address',
     'fact-address-value': 'Tashkent, Yunusabad district,<br>Chinabad street, 61/1',
     'fact-date-label': 'Date',
@@ -272,16 +269,16 @@ export function seatMembersText(lang, names) {
 
 const REMAINING_TEMPLATE = {
   ru: {
-    photo: (n) => (n > 0 ? `Осталось ${n} фото` : 'Лимит фото исчерпан'),
-    video: (n) => (n > 0 ? `Осталось ${n} видео` : 'Лимит видео исчерпан'),
+    photo: (n) => (n > 0 ? '' : 'Лимит фото исчерпан'),
+    video: (n) => (n > 0 ? '' : 'Лимит видео исчерпан'),
   },
   uz: {
-    photo: (n) => (n > 0 ? `Yana ${n} ta foto yuklash mumkin` : 'Foto limiti tugadi'),
-    video: (n) => (n > 0 ? `Yana ${n} ta video yuklash mumkin` : 'Video limiti tugadi'),
+    photo: (n) => (n > 0 ? '' : 'Foto limiti tugadi'),
+    video: (n) => (n > 0 ? '' : 'Video limiti tugadi'),
   },
   en: {
-    photo: (n) => (n > 0 ? `${n} photo${n === 1 ? '' : 's'} left` : 'Photo limit reached'),
-    video: (n) => (n > 0 ? `${n} video${n === 1 ? '' : 's'} left` : 'Video limit reached'),
+    photo: (n) => (n > 0 ? '' : 'Photo limit reached'),
+    video: (n) => (n > 0 ? '' : 'Video limit reached'),
   },
 };
 
