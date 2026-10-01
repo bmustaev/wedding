@@ -35,12 +35,21 @@ INSERT IGNORE INTO seating_tables (id, side, table_number, capacity) VALUES
 -- a table the groom side later removes through the app doesn't silently
 -- reappear on the next restart.
 INSERT IGNORE INTO seating_tables (id, hall, side, table_number, capacity)
-SELECT UUID(), 'samarkand', 'groom', n.num, 12
+SELECT UUID(), 'samarkand', 'groom', n.num, 14
 FROM (SELECT 1 AS num UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
       UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8) n
 WHERE NOT EXISTS (SELECT 1 FROM schema_migrations WHERE migration_name = 'samarkand_tables_v1')$$
 
 INSERT IGNORE INTO schema_migrations (migration_name) VALUES ('samarkand_tables_v1')$$
+
+-- Samarkand tables seat 14, not 12 — bumps the tables seeded above on
+-- databases that already had them at 12. Runs once, like the seeding, so
+-- a capacity later changed by hand isn't reset on the next restart.
+UPDATE seating_tables SET capacity = 14
+WHERE hall = 'samarkand' AND capacity = 12
+  AND NOT EXISTS (SELECT 1 FROM schema_migrations WHERE migration_name = 'samarkand_capacity_14')$$
+
+INSERT IGNORE INTO schema_migrations (migration_name) VALUES ('samarkand_capacity_14')$$
 
 -- Super admin bootstrap account -----------------------------------------
 -- TEST HASH ONLY — replace before deploying anywhere reachable.

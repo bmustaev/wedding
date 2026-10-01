@@ -364,7 +364,7 @@ Seat counts only, no guest names — safe regardless of who owns what. Every tab
 **Response `200`:**
 ```json
 [
-  { "tableId": "a9b8c7d6-...", "hall": "SAMARKAND", "side": "GROOM", "tableNumber": 1, "label": "1B", "capacity": 12, "seatsTaken": 0, "seatsLeft": 12 },
+  { "tableId": "a9b8c7d6-...", "hall": "SAMARKAND", "side": "GROOM", "tableNumber": 1, "label": "1B", "capacity": 14, "seatsTaken": 0, "seatsLeft": 14 },
   { "tableId": "b2c3d4e5-...", "hall": "TASHKENT", "side": "BRIDE", "tableNumber": 1, "label": "1D", "capacity": 12, "seatsTaken": 5, "seatsLeft": 7 },
   { "tableId": "c3d4e5f6-...", "hall": "TASHKENT", "side": "GROOM", "tableNumber": 1, "label": "1B", "capacity": 12, "seatsTaken": 0, "seatsLeft": 12 },
   { "tableId": "d1e2f3a4-...", "hall": "TASHKENT", "side": "HEAD", "tableNumber": null, "label": "Head Table", "capacity": 2, "seatsTaken": 1, "seatsLeft": 1 }
@@ -456,13 +456,13 @@ Adds a table on the **caller's own side** of a hall. The table number is auto-as
 
 **Request:**
 ```json
-{ "capacity": 12, "hall": "SAMARKAND" }
+{ "capacity": 14, "hall": "SAMARKAND" }
 ```
-(`capacity` optional, defaults to 12. `hall` optional, defaults to `"TASHKENT"`; `404` for a hall the caller can't access, `403` for a side that hall doesn't have — e.g. a super admin asking for a bride table in Samarkand.)
+(`capacity` optional, defaults to 12 in Tashkent and 14 in Samarkand. `hall` optional, defaults to `"TASHKENT"`; `404` for a hall the caller can't access, `403` for a side that hall doesn't have — e.g. a super admin asking for a bride table in Samarkand.)
 
 **Response `201`:**
 ```json
-{ "id": "a1b2c3d4-...", "hall": "SAMARKAND", "side": "GROOM", "tableNumber": 9, "label": "9B", "capacity": 12, "seatsLeft": 12 }
+{ "id": "a1b2c3d4-...", "hall": "SAMARKAND", "side": "GROOM", "tableNumber": 9, "label": "9B", "capacity": 14, "seatsLeft": 14 }
 ```
 
 ### `DELETE /api/seating/tables/{tableId}`

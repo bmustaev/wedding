@@ -9,13 +9,20 @@ import java.util.Set;
  * invitation (venue, date and time — see i18n.js on the frontend).
  */
 public enum Hall {
-    TASHKENT(Set.of(AdminSide.BRIDE, AdminSide.GROOM)),
-    SAMARKAND(Set.of(AdminSide.GROOM));
+    TASHKENT(Set.of(AdminSide.BRIDE, AdminSide.GROOM), 12),
+    SAMARKAND(Set.of(AdminSide.GROOM), 14);
 
     private final Set<AdminSide> sides;
+    private final int defaultTableCapacity;
 
-    Hall(Set<AdminSide> sides) {
+    Hall(Set<AdminSide> sides, int defaultTableCapacity) {
         this.sides = sides;
+        this.defaultTableCapacity = defaultTableCapacity;
+    }
+
+    /** Seats at a new table in this hall when the request doesn't say — mirrors the seeded tables in data.sql. */
+    public int getDefaultTableCapacity() {
+        return defaultTableCapacity;
     }
 
     /** Whether admins of this side may see this hall, invite guests to it, and have tables in it. */

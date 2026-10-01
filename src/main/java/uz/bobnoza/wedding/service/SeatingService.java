@@ -201,7 +201,7 @@ public class SeatingService {
                 .hall(hall)
                 .side(side)
                 .tableNumber(nextNumber)
-                .capacity(request.capacity() != null ? request.capacity() : 12)
+                .capacity(request.capacity() != null ? request.capacity() : hall.getDefaultTableCapacity())
                 .build();
 
         return toTableResponse(seatingTableRepository.save(table), 0);
