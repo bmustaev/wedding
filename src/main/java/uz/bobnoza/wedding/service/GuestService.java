@@ -6,8 +6,11 @@ import uz.bobnoza.wedding.dto.guest.GuestResponse;
 import uz.bobnoza.wedding.dto.guest.GuestUpdateRequest;
 import uz.bobnoza.wedding.dto.guest.PublicInvitationResponse;
 import uz.bobnoza.wedding.dto.media.MediaAllowanceResponse;
+import uz.bobnoza.wedding.entity.AdminSide;
 import uz.bobnoza.wedding.entity.Guest;
+import uz.bobnoza.wedding.entity.Hall;
 import uz.bobnoza.wedding.entity.SeatingTable;
+import uz.bobnoza.wedding.exception.ForbiddenOperationException;
 import uz.bobnoza.wedding.exception.ResourceNotFoundException;
 import uz.bobnoza.wedding.repository.AdminRepository;
 import uz.bobnoza.wedding.repository.GuestRepository;
@@ -80,6 +83,7 @@ public class GuestService {
                 .groupMembers(request.groupMembers())
                 .greetingMessage(request.greetingMessage())
                 .language(request.language() != null ? request.language() : "ru")
+                .hall(HallResolver.resolve(caller, request.hall()))
                 // The landing page exists as soon as the guest does — no separate "generate" step.
                 .pageGeneratedAt(Instant.now())
                 .build();
@@ -108,6 +112,18 @@ public class GuestService {
         }
         if (request.language() != null) {
             guest.setLanguage(request.language());
+        }
+        if (request.hall() != null) {
+            Hall hall = HallResolver.resolve(caller, request.hall());
+            AdminSide ownerSide = guest.getAdmin().getSide();
+            if (ownerSide != null && !hall.isOpenTo(ownerSide)) {
+                // Only reachable by super_admin editing a side admin's guest (e.g. a bride-side guest into Samarkand).
+                throw new ForbiddenOperationException("This guest's side isn't invited to the " + hall.name() + " hall");
+            }
+            if (hall != guest.getHall()) {
+                guest.setHall(hall);
+                guest.setTable(null); // their old table is in the other hall — they need re-seating there
+            }
         }
         if (!guest.isGroup()) {
             guest.setPartySize(1); // defense-in-depth — matches ck_guests_group_size
@@ -159,6 +175,7 @@ public class GuestService {
                 guest.getGroupMembers(),
                 guest.getGreetingMessage(),
                 guest.getLanguage(),
+                guest.getHall().name(),
                 tableNumber,
                 tableLabel,
                 allowance.photosRemaining(),
@@ -197,6 +214,7 @@ public class GuestService {
                 guest.getGroupMembers(),
                 guest.getGreetingMessage(),
                 guest.getLanguage(),
+                guest.getHall().name(),
                 guest.getLandingSlug(),
                 invitationBaseUrl + "/" + guest.getLandingSlug(),
                 tableId,

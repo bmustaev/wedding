@@ -30,6 +30,18 @@ INSERT IGNORE INTO seating_tables (id, side, table_number, capacity) VALUES
     (UUID(), 'bride', 1, 12), (UUID(), 'bride', 2, 12),
     (UUID(), 'groom', 1, 12), (UUID(), 'groom', 2, 12)$$
 
+-- Samarkand hall (groom side only): tables 1B..8B. Seeded exactly once,
+-- ever — guarded by schema_migrations rather than INSERT IGNORE alone, so
+-- a table the groom side later removes through the app doesn't silently
+-- reappear on the next restart.
+INSERT IGNORE INTO seating_tables (id, hall, side, table_number, capacity)
+SELECT UUID(), 'samarkand', 'groom', n.num, 12
+FROM (SELECT 1 AS num UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
+      UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8) n
+WHERE NOT EXISTS (SELECT 1 FROM schema_migrations WHERE migration_name = 'samarkand_tables_v1')$$
+
+INSERT IGNORE INTO schema_migrations (migration_name) VALUES ('samarkand_tables_v1')$$
+
 -- Super admin bootstrap account -----------------------------------------
 -- TEST HASH ONLY — replace before deploying anywhere reachable.
 -- This corresponds to plaintext password: test-password-123

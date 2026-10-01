@@ -124,6 +124,7 @@ curl http://localhost:8080/api/guests?page=0&size=20 \
       "groupMembers": ["Tom Miller", "Ann Miller", "Lucy Miller", "Ben Miller"],
       "greetingMessage": "So excited to celebrate with you!",
       "language": "ru",
+      "hall": "TASHKENT",
       "landingSlug": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
       "invitationUrl": "http://localhost:8080/i/a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
       "tableId": "b2c3d4e5-f6a1-b2c3-d4e5-f6a1b2c3d4e5",
@@ -174,6 +175,7 @@ curl http://localhost:8080/api/guests?page=0&size=20 \
 | `groupMembers` | no | Individual names, display only |
 | `greetingMessage` | no | Custom text on the landing page |
 | `language` | no (default `"ru"`) | `"en"`, `"ru"`, or `"uz"` — selects which language `invitation.html` renders in for this guest (see its README.md). Any other value falls back to Russian client-side; not validated server-side. |
+| `hall` | no (default `"TASHKENT"`) | `"TASHKENT"` or `"SAMARKAND"` — which celebration the guest is invited to (see section 4). Decides the invitation's venue/date/time and which tables they can sit at. `"SAMARKAND"` is groom side (and super admin) only — `404` for the bride side, as if the hall didn't exist. |
 
 **Response `201`:** same shape as a `GuestResponse` above. `landingSlug`/`invitationUrl` are generated automatically — the landing page exists as soon as the guest is created, no separate "generate" step.
 
@@ -211,6 +213,8 @@ To turn a single guest into a group (or back), include `isGroup` explicitly:
 ```
 Setting `isGroup: false` forces `partySize` back to `1` server-side regardless of what's sent, same as on create (`ck_guests_group_size`).
 
+Changing `hall` also clears the guest's table (it was in the other hall) — re-seat them in the new one. Same access rule as on create; a super admin additionally gets `403` moving a bride-side admin's guest to Samarkand.
+
 **Response `200`:** the updated `GuestResponse`. Editing content bumps `pageGeneratedAt` (treated as a regeneration of the invitation page).
 
 ### `DELETE /api/guests/{guestId}`
@@ -229,7 +233,7 @@ Bumps `pageGeneratedAt` to now without changing any content. Returns the updated
 
 ### `PUT /api/guests/{guestId}/table`
 
-**Auth:** admin (must own the guest). The target table must be on the admin's own side, or be the head table — a `403` otherwise.
+**Auth:** admin (must own the guest). The target table must be on the admin's own side, or be the head table — a `403` otherwise. It must also be in the guest's own `hall` — `403` otherwise (`trg_guests_table_capacity_*` enforce the same in the database). A table in a hall the caller can't access is `404`.
 
 **Request:**
 ```json
@@ -342,18 +346,28 @@ curl -X POST http://localhost:8080/api/guests/$GUEST_ID/media/photos \
 
 Every table belongs to a **side**: `"BRIDE"`, `"GROOM"`, or `"HEAD"` (the single, fixed bride-and-groom table). An admin can only assign guests to, or manage tables on, their own side — the head table is open to either side for their own guests. Table numbering restarts per side (a "1D" and a "1B" coexist — bride tables get the `D` suffix, groom tables get `B`, per this deployment's couple); the head table has `tableNumber: null` and is always labeled `"Head Table"`.
 
+Every table (and every guest) also belongs to a **hall**:
+
+| Hall | Sides | Seeded tables |
+|---|---|---|
+| `"TASHKENT"` — Santini, 2 Oct 2026 18:00 | head, bride, groom | head + 1D–2D + 1B–2B |
+| `"SAMARKAND"` — Bogishamol, 10 Oct 2026 14:00 | groom only | 1B–8B |
+
+Numbering restarts per hall too, so both halls have their own "1B". The bride side can't see Samarkand at all: its tables are left out of every listing below, and any direct reference to one (or `?hall=SAMARKAND`) is a `404`, not a `403`. Each response row carries `"hall"`.
+
 ### `GET /api/seating/occupancy`
 
 **Auth:** any admin
 
-Seat counts only, no guest names — safe regardless of who owns what.
+Seat counts only, no guest names — safe regardless of who owns what. Every table in every hall the caller can access.
 
 **Response `200`:**
 ```json
 [
-  { "tableId": "b2c3d4e5-...", "side": "BRIDE", "tableNumber": 1, "label": "1D", "capacity": 12, "seatsTaken": 5, "seatsLeft": 7 },
-  { "tableId": "c3d4e5f6-...", "side": "GROOM", "tableNumber": 1, "label": "1B", "capacity": 12, "seatsTaken": 0, "seatsLeft": 12 },
-  { "tableId": "d1e2f3a4-...", "side": "HEAD", "tableNumber": null, "label": "Head Table", "capacity": 2, "seatsTaken": 1, "seatsLeft": 1 }
+  { "tableId": "a9b8c7d6-...", "hall": "SAMARKAND", "side": "GROOM", "tableNumber": 1, "label": "1B", "capacity": 12, "seatsTaken": 0, "seatsLeft": 12 },
+  { "tableId": "b2c3d4e5-...", "hall": "TASHKENT", "side": "BRIDE", "tableNumber": 1, "label": "1D", "capacity": 12, "seatsTaken": 5, "seatsLeft": 7 },
+  { "tableId": "c3d4e5f6-...", "hall": "TASHKENT", "side": "GROOM", "tableNumber": 1, "label": "1B", "capacity": 12, "seatsTaken": 0, "seatsLeft": 12 },
+  { "tableId": "d1e2f3a4-...", "hall": "TASHKENT", "side": "HEAD", "tableNumber": null, "label": "Head Table", "capacity": 2, "seatsTaken": 1, "seatsLeft": 1 }
 ]
 ```
 
@@ -361,13 +375,14 @@ Seat counts only, no guest names — safe regardless of who owns what.
 
 **Auth:** any admin
 
-Every table across all three sides. **Own guests show by name; every other admin's guest is anonymized.** This is the isolation behavior validated live against the database (see `get_seating_chart_for_admin` in `schema.sql`) — unchanged by the side model. Side only governs *who can assign guests where*, not *who can see what*.
+Every table across all three sides, in every hall the caller can access. **Own guests show by name; every other admin's guest is anonymized.** This is the isolation behavior validated live against the database (see `get_seating_chart_for_admin` in `schema.sql`) — unchanged by the side model. Side only governs *who can assign guests where*, not *who can see what*.
 
 **Response `200`:**
 ```json
 [
   {
     "tableId": "b2c3d4e5-...",
+    "hall": "TASHKENT",
     "side": "BRIDE",
     "tableNumber": 1,
     "label": "1D",
@@ -381,6 +396,7 @@ Every table across all three sides. **Own guests show by name; every other admin
   },
   {
     "tableId": "c3d4e5f6-...",
+    "hall": "TASHKENT",
     "side": "GROOM",
     "tableNumber": 1,
     "label": "1B",
@@ -401,11 +417,14 @@ Every table across all three sides. **Own guests show by name; every other admin
 
 **Auth:** any admin
 
-Everything the hall-map page needs in a single call: the head table, every bride table, every groom table (each already carrying its guest list, isolation rules applied exactly as in `/chart`), plus the caller's own unassigned guests for populating a "drag from here" roster. Not paginated — returns all of the caller's unassigned guests at once.
+Everything the hall-map page needs for **one hall** in a single call: the head table, every bride table, every groom table (each already carrying its guest list, isolation rules applied exactly as in `/chart`), plus the caller's own unassigned guests invited to that hall, for populating a "drag from here" roster. Not paginated — returns all of them at once.
+
+**Query param:** `hall` — `TASHKENT` (default) or `SAMARKAND` (case-insensitive; `404` for the bride side). Samarkand has no head table (`headTable: null`) and no bride tables.
 
 **Response `200`:**
 ```json
 {
+  "hall": "TASHKENT",
   "headTable": {
     "id": "d1e2f3a4-...", "side": "HEAD", "tableNumber": null, "label": "Head Table",
     "capacity": 2, "seatsLeft": 1,
@@ -433,22 +452,22 @@ Everything the hall-map page needs in a single call: the head table, every bride
 
 **Auth:** admin (not super admin — a super admin has no side, and `403`s here)
 
-Adds a table on the **caller's own side**. The table number is auto-assigned (next available for that side) — never client-supplied, so two admins can't collide.
+Adds a table on the **caller's own side** of a hall. The table number is auto-assigned (next available for that hall and side) — never client-supplied, so two admins can't collide.
 
 **Request:**
 ```json
-{ "capacity": 12 }
+{ "capacity": 12, "hall": "SAMARKAND" }
 ```
-(`capacity` optional, defaults to 12.)
+(`capacity` optional, defaults to 12. `hall` optional, defaults to `"TASHKENT"`; `404` for a hall the caller can't access, `403` for a side that hall doesn't have — e.g. a super admin asking for a bride table in Samarkand.)
 
 **Response `201`:**
 ```json
-{ "id": "a1b2c3d4-...", "side": "BRIDE", "tableNumber": 3, "label": "3D", "capacity": 12, "seatsLeft": 12 }
+{ "id": "a1b2c3d4-...", "hall": "SAMARKAND", "side": "GROOM", "tableNumber": 9, "label": "9B", "capacity": 12, "seatsLeft": 12 }
 ```
 
 ### `DELETE /api/seating/tables/{tableId}`
 
-**Auth:** admin — must own the table's side. `403` if it's another side's table, `403` if it's the head table (can't be removed at all).
+**Auth:** admin — must own the table's side. `403` if it's another side's table, `403` if it's the head table (can't be removed at all), `404` if it's in a hall the caller can't access.
 
 **Response `409`** if guests are still seated there:
 ```json
@@ -482,6 +501,8 @@ Adds a table on the **caller's own side**. The table number is auto-assigned (ne
 | `The Miller Family;4;Tom,Ann,Lucy,Ben` | Group of 4 with names |
 
 Blank lines are skipped (not counted as rows). A line that fails to parse doesn't fail the whole file — it's recorded with its error and the rest of the file keeps processing.
+
+Optional form field `hall` (`TASHKENT` default, or `SAMARKAND`) invites every guest in the file to that hall — same access rule as `POST /api/guests`. The hall page sends whichever hall it's showing.
 
 **curl:**
 ```bash
@@ -640,6 +661,7 @@ curl http://localhost:8080/api/public/invitations/a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3
   "groupMembers": ["Tom Miller", "Ann Miller", "Lucy Miller", "Ben Miller"],
   "greetingMessage": "So excited to celebrate with you!",
   "language": "en",
+  "hall": "TASHKENT",
   "tableNumber": 1,
   "tableLabel": "1D",
   "photosRemaining": 15,
@@ -650,6 +672,8 @@ curl http://localhost:8080/api/public/invitations/a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3
 `tableLabel` is the side-qualified form guests actually recognize — bride tables are `"{n}D"`, groom tables `"{n}B"`, the head table is `"Head Table"` (see the seating section below). Both `tableNumber` and `tableLabel` are `null` until the guest has a table assigned.
 
 `language` drives which of the three languages (`en`/`ru`/`uz`) `invitation.html` actually renders in for this guest — see this project's frontend README.md.
+
+`hall` picks which celebration the page describes — `"TASHKENT"` (Santini, 2 Oct 18:00) or `"SAMARKAND"` (Bogishamol, 10 Oct 14:00). Same design either way; only venue, date, time, map link and the copy mentioning them differ (`HALL_STRINGS` in `js/i18n.js`).
 
 First call marks `first_viewed_at` on the guest record server-side (not returned in this response, but visible to the admin via `GET /api/guests/{id}`).
 

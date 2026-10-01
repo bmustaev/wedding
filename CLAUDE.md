@@ -45,6 +45,10 @@ Stateless JWT (`JwtAuthFilter` → `JwtService`), token from `POST /api/auth/log
 - Enum-like columns are VARCHAR + CHECK, mapped through `AttributeConverter`s in `entity/converter/` (DB stores lowercase/snake values, Java uses enums). `guests.group_members` is CSV TEXT via `StringListCsvConverter`.
 - Guests are soft-deleted (`deleted` flag); repository queries filter `DeletedFalse`.
 
+### Halls
+
+Every guest and every seating table has a `hall`: `TASHKENT` (main: head/bride/groom tables) or `SAMARKAND` (groom side only, tables 1B–8B seeded once in `data.sql`). `Hall.isOpenTo(side)` + `AdminPrincipal.canAccessHall()` are the access rule; a hall the caller can't access is treated as nonexistent (404), consistent with the ownership rule. A guest can only sit at a table in their own hall (Java check + `check_table_hall` in the guests triggers), and their hall picks which invitation (venue/date/time) `invitation.html` renders.
+
 ### Media
 
 Uploaded files go to the filesystem via `MediaStorageService` (`LocalFilesystemMediaStorageService`, dir from `app.media.storage-dir`); the DB stores only the storage key, never bytes. Limits (15 photos / 4 videos per guest) come from `app.media.*` config and are mirrored by the DB trigger.

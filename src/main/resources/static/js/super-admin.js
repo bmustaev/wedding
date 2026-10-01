@@ -162,6 +162,7 @@ function renderAdminGuests(pageResponse) {
     <tr>
       <td>${escapeHtml(g.displayName)}${g.isGroup ? ` <span class="badge">${t('badge-group')}</span>` : ''}</td>
       <td>${g.partySize}</td>
+      <td>${escapeHtml(t(`hall-name-${g.hall}`))}</td>
       <td>${g.tableLabel ? escapeHtml(g.tableLabel) : '—'}</td>
       <td>${g.firstViewedAt ? t('status-viewed') : t('status-not-viewed')}</td>
     </tr>`).join('');
@@ -169,7 +170,7 @@ function renderAdminGuests(pageResponse) {
   adminGuestsContainer.innerHTML = `
     <div class="table-wrap">
       <table>
-        <thead><tr><th>${t('th-name')}</th><th>${t('th-party')}</th><th>${t('th-table')}</th><th>${t('th-status')}</th></tr></thead>
+        <thead><tr><th>${t('th-name')}</th><th>${t('th-party')}</th><th>${t('th-hall')}</th><th>${t('th-table')}</th><th>${t('th-status')}</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`;

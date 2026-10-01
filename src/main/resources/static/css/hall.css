@@ -22,6 +22,10 @@
 
 .hall-bride-zone, .hall-groom-zone { width: 20rem; }
 
+/* Tashkent / Samarkand switch — reuses .lang-toggle's segmented look, a size up. */
+.hall-switcher { margin-top: 0.75rem; }
+.hall-switcher button { font-size: 0.85rem; padding: 0.45em 1.1em; }
+
 .hall-side-header {
   display: flex;
   justify-content: space-between;

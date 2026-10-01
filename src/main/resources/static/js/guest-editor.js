@@ -3,7 +3,7 @@
 // must already exist in the page — identical block in dashboard.html and
 // hall.html (same element ids) — this module only supplies the behavior.
 import * as api from './api.js';
-import { getSide, isSuperAdmin } from './auth.js';
+import { getSide, isSuperAdmin, getAccessibleHalls } from './auth.js';
 import { showError, clearBanner, openModal, closeModal, escapeHtml, copyToClipboard } from './ui.js';
 import { t, getAdminLanguage } from './admin-i18n.js';
 
@@ -22,6 +22,8 @@ const guestInvitationUrl = document.getElementById('guest-invitation-url');
 const guestMediaSection = document.getElementById('guest-media-section');
 const guestDeleteBtn = document.getElementById('guest-delete-btn');
 const guestTableSelect = document.getElementById('guest-table');
+const guestHallField = document.getElementById('guest-hall-field');
+const guestHallSelect = document.getElementById('guest-hall');
 const guestMediaGrid = document.getElementById('guest-media-grid');
 const guestMediaAllowance = document.getElementById('guest-media-allowance');
 
@@ -95,8 +97,10 @@ async function populateTableSelect(selectedTableId) {
     // Only real numbered tables are pickable — never the head table as a
     // new choice — but if this guest is already seated there (assigned via
     // the hall page), keep showing it so an untouched save doesn't
-    // silently unseat them.
+    // silently unseat them. And only tables in the hall picked above: a
+    // guest can't sit in a hall they're not invited to.
     const usable = tables.filter((table) => {
+      if (table.hall !== guestHallSelect.value) return false;
       if (table.side === 'HEAD') return table.tableId === selectedTableId;
       return isSuperAdmin() || table.side === callerSide;
     });
@@ -116,6 +120,10 @@ async function populateTableSelect(selectedTableId) {
   }
 }
 
+// Switching hall swaps the table list to that hall's tables — the current
+// pick survives only if it's in the new hall (i.e. never, in practice).
+guestHallSelect.addEventListener('change', () => populateTableSelect(guestTableSelect.value || null));
+
 /**
  * Call once per page, before the first openGuestEditor(). The callbacks let
  * each page decide what "refresh after a change" means for it — reload the
@@ -130,9 +138,11 @@ export function initGuestEditor({ onSaved, onDeleted } = {}) {
  * Opens the modal in-place — pass a guest id to edit, or null/undefined to
  * add a new guest. presetTableId (new-guest mode only, e.g. the hall
  * page's per-table "add guest" button) pre-selects that table in the
- * dropdown so it's assigned as soon as the guest is saved.
+ * dropdown so it's assigned as soon as the guest is saved. presetHall
+ * (new-guest mode only) is the hall a new guest is invited to — the hall
+ * page passes whichever hall it's showing; otherwise Tashkent.
  */
-export async function openGuestEditor(guestId, presetTableId) {
+export async function openGuestEditor(guestId, presetTableId, presetHall) {
   editingGuestId = guestId || null;
   clearBanner(guestModalError);
   guestForm.reset();
@@ -151,6 +161,12 @@ export async function openGuestEditor(guestId, presetTableId) {
     guestLanguage.value = getAdminLanguage();
   }
 
+  // The hall picker only matters to someone who can reach more than one
+  // hall (groom side, super admin) — the bride side only ever has Tashkent.
+  const accessibleHalls = getAccessibleHalls();
+  guestHallField.hidden = accessibleHalls.length < 2;
+  guestHallSelect.value = accessibleHalls.includes(presetHall) ? presetHall : 'TASHKENT';
+
   editingGuestTableId = null;
   await populateTableSelect(editingGuestId ? null : (presetTableId || null));
   openModal(guestModalBackdrop);
@@ -165,6 +181,7 @@ export async function openGuestEditor(guestId, presetTableId) {
       (guest.groupMembers || []).forEach((m) => addMemberRow(m));
       document.getElementById('guest-greeting').value = guest.greetingMessage || '';
       guestLanguage.value = guest.language || 'en';
+      guestHallSelect.value = guest.hall || 'TASHKENT';
       guestInvitationUrl.value = guest.invitationUrl;
       editingGuestTableId = guest.tableId;
       await populateTableSelect(guest.tableId);
@@ -201,6 +218,7 @@ document.getElementById('guest-save-btn').addEventListener('click', async () => 
     groupMembers: guestIsGroup.checked ? collectMembers() : [],
     greetingMessage: document.getElementById('guest-greeting').value.trim() || null,
     language: guestLanguage.value.trim() || 'en',
+    hall: guestHallSelect.value,
   };
 
   try {

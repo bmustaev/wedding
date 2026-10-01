@@ -140,12 +140,12 @@ export function getSeatingChart() {
   return request('/api/seating/chart');
 }
 
-export function getHallView() {
-  return request('/api/seating/hall');
+export function getHallView(hall) {
+  return request(`/api/seating/hall${toQueryString({ hall })}`);
 }
 
-export function createTable(capacity, side) {
-  return request('/api/seating/tables', { method: 'POST', body: { capacity: capacity ?? null, side: side ?? null } });
+export function createTable(capacity, side, hall) {
+  return request('/api/seating/tables', { method: 'POST', body: { capacity: capacity ?? null, side: side ?? null, hall: hall ?? null } });
 }
 
 export function deleteTable(tableId) {
@@ -156,9 +156,10 @@ export function deleteTable(tableId) {
 // Bulk import
 // -----------------------------------------------------------------------
 
-export function importGuestsFile(file) {
+export function importGuestsFile(file, hall) {
   const form = new FormData();
   form.append('file', file);
+  if (hall) form.append('hall', hall);
   return request('/api/imports', { method: 'POST', body: form, isForm: true });
 }
 

@@ -1,6 +1,7 @@
 package uz.bobnoza.wedding.repository;
 
 import uz.bobnoza.wedding.entity.Guest;
+import uz.bobnoza.wedding.entity.Hall;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,9 +23,10 @@ public interface GuestRepository extends JpaRepository<Guest, UUID> {
     /** Unrestricted lookup — only for super_admin, which has no ownership scope to filter by. */
     Optional<Guest> findByIdAndDeletedFalse(UUID id);
 
-    /** Every unassigned guest across every admin — only for super_admin's hall view (a regular admin sees only their own). */
-    @Query("select g from Guest g left join fetch g.admin where g.table is null and g.deleted = false order by g.displayName asc")
-    List<Guest> findAllUnassignedAcrossAllAdmins();
+    /** Every unassigned guest of one hall across every admin — only for super_admin's hall view (a regular admin sees only their own). */
+    @Query("select g from Guest g left join fetch g.admin " +
+           "where g.table is null and g.deleted = false and g.hall = :hall order by g.displayName asc")
+    List<Guest> findAllUnassignedAcrossAllAdmins(@Param("hall") Hall hall);
 
     /** Public landing-page resolution by unguessable token — no admin scoping needed. */
     Optional<Guest> findByLandingSlugAndDeletedFalse(String landingSlug);

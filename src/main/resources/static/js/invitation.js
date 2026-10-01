@@ -33,16 +33,20 @@ if (slug) {
 }
 
 // -----------------------------------------------------------------------
-// Fixed event details — same for every guest, so they don't come from the
-// API. Keep this in sync with the copy in the page's markup (and i18n.js)
-// if the venue or date ever changes.
+// Fixed event details — one set per hall, chosen by the guest's `hall`
+// from the API. Keep these in sync with the copy in the page's markup
+// (and i18n.js, incl. HALL_STRINGS) if a venue or date ever changes.
 // -----------------------------------------------------------------------
-const WEDDING_DATE = new Date('2026-10-02T18:00:00+05:00');
+const EVENT_DATES = {
+  TASHKENT: new Date('2026-10-02T18:00:00+05:00'),
+  SAMARKAND: new Date('2026-10-10T14:00:00+05:00'),
+};
 
 // Best guess until the guest's own `language` comes back from the API —
 // used only for the loading/invalid-link screens, since nothing else is
 // visible until then (#invite-content stays hidden).
 let currentLang = normalizeLanguage(navigator.language);
+let currentHall = 'TASHKENT';
 
 async function init() {
   if (!slug) {
@@ -51,10 +55,13 @@ async function init() {
   }
   try {
     const invitation = await api.getPublicInvitation(slug);
+    currentHall = invitation.hall in EVENT_DATES ? invitation.hall : 'TASHKENT';
     applyLanguage(invitation.language);
     renderInvitation(invitation);
     loadingEl.hidden = true;
     contentEl.hidden = false;
+    // Started only now that the hall (and so the date) is known.
+    startCountdown();
     loadGallery();
   } catch {
     showInvalidLink();
@@ -69,13 +76,15 @@ function showInvalidLink() {
 /** Re-applies every translated string for `lang`, including the pieces i18n.js can't drive via plain data-i18n (captions, map links). */
 function applyLanguage(lang) {
   currentLang = normalizeLanguage(lang);
-  applyStaticTranslations(currentLang);
+  applyStaticTranslations(currentLang, currentHall);
 
   updateAboutGalleryCaptions();
 
-  const query = mapQueryFor(currentLang);
-  document.getElementById('map-ya').href = 'https://yandex.uz/maps/?text=' + encodeURIComponent(query);
-  document.getElementById('map-gg').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query);
+  // No parking details for the Samarkand venue yet — hide the row rather than show Santini's.
+  document.getElementById('fact-parking').hidden = currentHall !== 'TASHKENT';
+
+  document.getElementById('map-ya').href = 'https://yandex.uz/maps/?text=' + encodeURIComponent(mapQueryFor(currentLang, currentHall, 'yandex'));
+  document.getElementById('map-gg').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(mapQueryFor(currentLang, currentHall, 'google'));
 }
 
 function renderInvitation(invitation) {
@@ -221,7 +230,7 @@ function startCountdown() {
   let timer = null;
 
   function tick() {
-    const left = WEDDING_DATE - new Date();
+    const left = EVENT_DATES[currentHall] - new Date();
     if (left <= 0) {
       cd.hidden = true;
       today.hidden = false;
@@ -249,5 +258,4 @@ function startCountdown() {
 
 loadAboutGallery();
 applyLanguage(currentLang);
-startCountdown();
 init();

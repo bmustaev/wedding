@@ -37,6 +37,11 @@
         <div>
           <h1 data-i18n="hall-heading">Wedding hall</h1>
           <p class="field-hint" style="margin:0;" data-i18n="hall-subtitle">Drag guests between your own side's tables. The other side's tables are visible but not yours to arrange.</p>
+          <!-- Only shown when the caller can reach more than one hall (groom side, super admin) — see hall.js. -->
+          <div class="lang-toggle hall-switcher" id="hall-switcher" hidden>
+            <button type="button" data-hall="TASHKENT" data-i18n="hall-name-TASHKENT">Tashkent</button>
+            <button type="button" data-hall="SAMARKAND" data-i18n="hall-name-SAMARKAND">Samarkand</button>
+          </div>
         </div>
         <div class="actions">
           <button type="button" class="btn btn-sm" id="hall-diagram-btn" data-i18n="hall-diagram-btn">Схема зала</button>
@@ -135,6 +140,15 @@
         <div class="field">
           <label for="guest-greeting" data-i18n="guest-greeting-label">Greeting message</label>
           <textarea id="guest-greeting" data-i18n-placeholder="guest-greeting-placeholder" placeholder="So excited to celebrate with you!"></textarea>
+        </div>
+
+        <div class="field" id="guest-hall-field" hidden>
+          <label for="guest-hall" data-i18n="guest-hall-label">Hall</label>
+          <select id="guest-hall" style="max-width:14rem;">
+            <option value="TASHKENT" data-i18n="hall-name-TASHKENT">Tashkent</option>
+            <option value="SAMARKAND" data-i18n="hall-name-SAMARKAND">Samarkand</option>
+          </select>
+          <p class="field-hint" data-i18n="guest-hall-hint">Decides which invitation the guest gets (venue, date and time) and which tables they can sit at.</p>
         </div>
 
         <div class="field">

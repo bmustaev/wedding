@@ -4,7 +4,7 @@
 // since this isn't a high-frequency interaction and the server is the
 // only source of truth for capacity/side rules anyway.
 import * as api from './api.js';
-import { requireAuth, getRole, getUsername, getSide, isSuperAdmin, logout } from './auth.js';
+import { requireAuth, getRole, getUsername, getSide, isSuperAdmin, logout, HALL_SIDES, getAccessibleHalls } from './auth.js';
 import { showError, clearBanner, escapeHtml, copyToClipboard, ICON_COPY_LINK, ICON_CHECK, ICON_ADD_PERSON } from './ui.js';
 import { initGuestEditor, openGuestEditor } from './guest-editor.js';
 import { applyStaticTranslations, initLanguageSwitcher, t } from './admin-i18n.js';
@@ -15,6 +15,46 @@ initLanguageSwitcher(document.getElementById('lang-switcher'));
 document.getElementById('unassigned-tray-body').dataset.emptyLabel = t('everyone-seated');
 
 const callerSide = getSide(); // 'BRIDE' | 'GROOM' | null (null shouldn't reach this page in practice)
+
+// -----------------------------------------------------------------------
+// Hall switcher — Tashkent (main) / Samarkand (groom side only). The
+// choice lives in the URL (?hall=samarkand) so a reload or a shared link
+// keeps it; anything unknown or not accessible falls back to Tashkent.
+// -----------------------------------------------------------------------
+
+const accessibleHalls = getAccessibleHalls();
+const requestedHall = (new URLSearchParams(location.search).get('hall') || '').toUpperCase();
+let currentHall = accessibleHalls.includes(requestedHall) ? requestedHall : 'TASHKENT';
+
+const hallSwitcher = document.getElementById('hall-switcher');
+hallSwitcher.hidden = accessibleHalls.length < 2;
+hallSwitcher.setAttribute('role', 'group');
+hallSwitcher.setAttribute('aria-label', t('hall-switcher-label'));
+
+function markActiveHall() {
+  hallSwitcher.querySelectorAll('[data-hall]').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.hall === currentHall);
+  });
+}
+
+hallSwitcher.querySelectorAll('[data-hall]').forEach((btn) => {
+  btn.hidden = !accessibleHalls.includes(btn.dataset.hall);
+  btn.addEventListener('click', () => {
+    if (btn.dataset.hall === currentHall) return;
+    currentHall = btn.dataset.hall;
+    const url = new URL(location.href);
+    url.searchParams.set('hall', currentHall.toLowerCase());
+    history.replaceState(null, '', url);
+    markActiveHall();
+    loadHall();
+  });
+});
+markActiveHall();
+
+/** Whether this admin works the given side's tables in the current hall (super admin: every side the hall has). */
+function worksSide(side) {
+  return HALL_SIDES[currentHall].includes(side) && (isSuperAdmin() || callerSide === side);
+}
 
 // -----------------------------------------------------------------------
 // Sidebar
@@ -49,7 +89,7 @@ async function loadHall() {
   hallLoading.hidden = false;
   hallMap.hidden = true;
   try {
-    const view = await api.getHallView();
+    const view = await api.getHallView(currentHall);
     renderHall(view);
     hallLoading.hidden = true;
     hallMap.hidden = false;
@@ -69,19 +109,15 @@ function renderHall(view) {
   // position is only ever shown in the read-only "Схема зала" diagram.
   // Regular admins only ever work their own side — the other side's
   // board isn't rendered at all, not just uneditable, since drag-and-drop
-  // has nothing useful to offer them there. Super admin still gets both.
-  if (isSuperAdmin()) {
-    brideZone.hidden = false;
-    groomZone.hidden = false;
-  } else {
-    brideZone.hidden = callerSide !== 'BRIDE';
-    groomZone.hidden = callerSide !== 'GROOM';
-  }
+  // has nothing useful to offer them there. Super admin still gets both
+  // (in Tashkent — Samarkand has no bride side at all).
+  brideZone.hidden = !worksSide('BRIDE');
+  groomZone.hidden = !worksSide('GROOM');
 
   document.getElementById('hall-bride-column').innerHTML =
-    view.brideTables.map((t) => tableCardHtml(t, isSuperAdmin() || callerSide === 'BRIDE')).join('') + addTableButtonHtml('BRIDE');
+    view.brideTables.map((t) => tableCardHtml(t, worksSide('BRIDE'))).join('') + addTableButtonHtml('BRIDE');
   document.getElementById('hall-groom-column').innerHTML =
-    view.groomTables.map((t) => tableCardHtml(t, isSuperAdmin() || callerSide === 'GROOM')).join('') + addTableButtonHtml('GROOM');
+    view.groomTables.map((t) => tableCardHtml(t, worksSide('GROOM'))).join('') + addTableButtonHtml('GROOM');
 
   renderUnassignedTray(view.unassignedGuests);
   wireTableCardEvents();
@@ -90,7 +126,7 @@ function renderHall(view) {
 }
 
 function addTableButtonHtml(side) {
-  if (!isSuperAdmin() && callerSide !== side) return '';
+  if (!worksSide(side)) return '';
   return `<button type="button" class="btn btn-sm hall-add-table-btn" data-side="${side}">${t('add-table-btn')}</button>`;
 }
 
@@ -265,7 +301,7 @@ function wireTableCardEvents() {
 
   document.querySelectorAll('.hall-table-add-guest').forEach((btn) => {
     btn.addEventListener('click', () => {
-      openGuestEditor(null, btn.dataset.tableId);
+      openGuestEditor(null, btn.dataset.tableId, currentHall);
     });
   });
 
@@ -350,7 +386,7 @@ function wireAddTableButtons() {
   document.querySelectorAll('.hall-add-table-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
       try {
-        await api.createTable(undefined, btn.dataset.side);
+        await api.createTable(undefined, btn.dataset.side, currentHall);
         loadHall();
       } catch (err) {
         showError(hallError, err);
@@ -364,10 +400,16 @@ function wireAddTableButtons() {
 // sides' tables plus the head table's position), regardless of which
 // side(s) the board above is currently showing. Built from the same
 // hall-view data already fetched for the board, not a separate request.
+// A side with no tables (Samarkand's bride side) gets no column at all.
 // -----------------------------------------------------------------------
 
 function diagramTableHtml(table) {
   return `<div class="hall-diagram-table" title="${escapeHtml(table.label)}">${escapeHtml(table.label)}</div>`;
+}
+
+function diagramColumnHtml(tables) {
+  if (tables.length === 0) return '';
+  return `<div class="hall-diagram-column">${tables.map(diagramTableHtml).join('')}</div>`;
 }
 
 function renderHallDiagram(view) {
@@ -376,9 +418,9 @@ function renderHallDiagram(view) {
     <div class="hall-diagram">
       <div class="hall-diagram-couple">${escapeHtml(coupleLabel)}</div>
       <div class="hall-diagram-floor">
-        <div class="hall-diagram-column">${view.brideTables.map(diagramTableHtml).join('')}</div>
+        ${diagramColumnHtml(view.brideTables)}
         <div class="hall-diagram-dance-floor">${escapeHtml(t('hall-diagram-dance-floor'))}</div>
-        <div class="hall-diagram-column">${view.groomTables.map(diagramTableHtml).join('')}</div>
+        ${diagramColumnHtml(view.groomTables)}
       </div>
     </div>`;
 }
@@ -397,7 +439,7 @@ document.getElementById('hall-diagram-close-btn').addEventListener('click', () =
 // -----------------------------------------------------------------------
 
 document.getElementById('hall-add-guest-btn').addEventListener('click', () => {
-  openGuestEditor(null);
+  openGuestEditor(null, undefined, currentHall);
 });
 
 // -----------------------------------------------------------------------
@@ -425,7 +467,7 @@ document.getElementById('hall-import-upload-btn').addEventListener('click', asyn
     return;
   }
   try {
-    const result = await api.importGuestsFile(file);
+    const result = await api.importGuestsFile(file, currentHall);
     importResultEl.innerHTML = `<div class="banner banner-success">${t('import-modal-success', { success: result.successRows, total: result.totalRows })}</div>`;
   } catch (err) {
     showError(importError, err);

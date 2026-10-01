@@ -11,5 +11,6 @@ public record GuestCreateRequest(
         @Min(1) Integer partySize,
         List<String> groupMembers,
         String greetingMessage,
-        String language
+        String language,
+        String hall
 ) {}

@@ -6,7 +6,8 @@ import java.util.List;
  * What a guest sees when they open their own landing page — no admin-only fields.
  * tableLabel is the side-qualified display form guests actually recognize, e.g.
  * "1D" (bride) / "1B" (groom) / "Head Table" — see {@link uz.bobnoza.wedding.entity.SeatingTable#getLabel()}.
- * Null iff tableNumber is null.
+ * Null iff tableNumber is null. hall ("TASHKENT" / "SAMARKAND") picks which
+ * celebration's venue, date and time the invitation page shows.
  */
 public record PublicInvitationResponse(
         String displayName,
@@ -14,6 +15,7 @@ public record PublicInvitationResponse(
         List<String> groupMembers,
         String greetingMessage,
         String language,
+        String hall,
         Integer tableNumber,
         String tableLabel,
         int photosRemaining,

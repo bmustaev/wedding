@@ -4,6 +4,7 @@ import uz.bobnoza.wedding.dto.importing.ImportResultResponse;
 import uz.bobnoza.wedding.dto.importing.ImportRowResult;
 import uz.bobnoza.wedding.entity.Admin;
 import uz.bobnoza.wedding.entity.Guest;
+import uz.bobnoza.wedding.entity.Hall;
 import uz.bobnoza.wedding.entity.ImportBatch;
 import uz.bobnoza.wedding.entity.ImportBatchRow;
 import uz.bobnoza.wedding.entity.ImportStatus;
@@ -38,7 +39,8 @@ import java.util.UUID;
  * when PartySize > 1 — e.g. "The Miller Family;4;Tom,Ann,Lucy,Ben". Blank
  * lines are skipped and not counted as rows. A line that fails to parse
  * doesn't fail the whole batch — it's recorded with its error message and
- * the rest of the file keeps processing.
+ * the rest of the file keeps processing. Every guest in one file is invited
+ * to the same hall (TASHKENT unless the upload names another).
  */
 @Service
 public class ImportService {
@@ -59,7 +61,8 @@ public class ImportService {
     }
 
     @Transactional
-    public ImportResultResponse importFile(AdminPrincipal caller, MultipartFile file) {
+    public ImportResultResponse importFile(AdminPrincipal caller, MultipartFile file, String requestedHall) {
+        Hall hall = HallResolver.resolve(caller, requestedHall);
         Admin adminRef = adminRepository.getReferenceById(caller.getAdminId());
 
         ImportBatch batch = ImportBatch.builder()
@@ -99,6 +102,7 @@ public class ImportService {
                         .group(parsed.isGroup())
                         .partySize(parsed.partySize())
                         .groupMembers(parsed.members())
+                        .hall(hall)
                         .pageGeneratedAt(Instant.now())
                         .build();
                 guest = guestRepository.save(guest);

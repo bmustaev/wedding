@@ -8,6 +8,7 @@ import java.util.UUID;
  */
 public record SeatingChartEntryResponse(
         UUID tableId,
+        String hall,
         String side,
         Integer tableNumber,
         String label,

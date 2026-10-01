@@ -8,6 +8,7 @@ Plain HTML/CSS/JS, no framework, no build step. Talks to the Spring Boot backend
 |---|---|---|
 | `login.html` | Admin / super admin | Sign in |
 | `dashboard.html` | Admin | Manage own guests, seating, bulk import |
+| `hall.html` | Admin | Drag-and-drop seating map, one hall at a time (Tashkent / Samarkand switcher for the groom side and super admin) |
 | `super-admin.html` | Super admin only | Manage admin accounts, view (read-only) any admin's guests, manage the invitation page's "about us" gallery |
 | `invitation.html` | Guest, no login | View invitation. Photo/video upload isn't live yet — its buttons link to `media.html` |
 | `media.html` | Guest, no login | Placeholder for the future photo/video upload page; today it just explains uploads open on the wedding day |
@@ -42,6 +43,12 @@ app:
     base-url: http://localhost:8080/i
 ```
 (or whatever host you actually deploy to). With that, `GuestResponse.invitationUrl` will already be a complete, correct, clickable link — the frontend doesn't reconstruct it from the slug anywhere except reading it back out of its own URL on the invitation page.
+
+## Two halls, two invitations
+
+Guests are invited to one of two celebrations — each guest has a `hall` (`TASHKENT` or `SAMARKAND`, see API.md section 4). Samarkand belongs to the groom side alone: the bride side never sees the hall switcher, the guest editor's "Hall" picker, or the dashboard's "Hall" column (`getAccessibleHalls()` in `js/auth.js`, mirroring `Hall.java`).
+
+`invitation.html` is one page for both: `js/invitation.js` reads the guest's `hall` and picks the event date (`EVENT_DATES`) and map query, and `js/i18n.js` overlays `HALL_STRINGS.SAMARKAND` on top of the Tashkent copy for venue/date/time text. The static `<title>`/Open Graph tags in `invitation.html` can't vary per guest (no server-side templating), so link previews always describe the Tashkent celebration.
 
 ## Auth
 

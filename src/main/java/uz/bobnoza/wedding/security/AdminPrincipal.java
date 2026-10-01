@@ -2,6 +2,7 @@ package uz.bobnoza.wedding.security;
 
 import uz.bobnoza.wedding.entity.Admin;
 import uz.bobnoza.wedding.entity.AdminSide;
+import uz.bobnoza.wedding.entity.Hall;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -37,6 +38,11 @@ public class AdminPrincipal implements UserDetails {
     /** Null for super_admin. */
     public AdminSide getSide() {
         return admin.getSide();
+    }
+
+    /** super_admin reaches every hall; a side admin only the halls open to their side (see {@link Hall#isOpenTo}). */
+    public boolean canAccessHall(Hall hall) {
+        return isSuperAdmin() || hall.isOpenTo(getSide());
     }
 
     @Override

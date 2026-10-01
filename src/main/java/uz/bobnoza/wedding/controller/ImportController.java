@@ -31,8 +31,9 @@ public class ImportController {
     @PostMapping
     public ResponseEntity<ImportResultResponse> importGuests(
             @AuthenticationPrincipal AdminPrincipal caller,
-            @RequestParam("file") MultipartFile file) {
-        ImportResultResponse result = importService.importFile(caller, file);
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(required = false) String hall) {
+        ImportResultResponse result = importService.importFile(caller, file, hall);
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 

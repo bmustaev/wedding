@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -33,10 +34,10 @@ public class SeatingController {
         this.seatingService = seatingService;
     }
 
-    /** Seat counts only, no names — safe for any authenticated admin. */
+    /** Seat counts only, no names — every table in every hall the caller can access. */
     @GetMapping("/occupancy")
-    public List<TableOccupancyResponse> occupancy() {
-        return seatingService.listOccupancy();
+    public List<TableOccupancyResponse> occupancy(@AuthenticationPrincipal AdminPrincipal caller) {
+        return seatingService.listOccupancy(caller);
     }
 
     /** Own guests shown by name; every other admin's guest anonymized to a seat count. */
@@ -45,13 +46,17 @@ public class SeatingController {
         return seatingService.getSeatingChart(caller);
     }
 
-    /** Everything the hall-map page needs in one call: head/bride/groom tables plus the caller's unassigned guests. */
+    /**
+     * Everything the hall-map page needs for one hall in one call: head/bride/groom tables plus the
+     * caller's unassigned guests invited to that hall. hall defaults to TASHKENT; SAMARKAND is 404 for the bride side.
+     */
     @GetMapping("/hall")
-    public HallViewResponse hall(@AuthenticationPrincipal AdminPrincipal caller) {
-        return seatingService.getHallView(caller);
+    public HallViewResponse hall(@AuthenticationPrincipal AdminPrincipal caller,
+                                 @RequestParam(required = false) String hall) {
+        return seatingService.getHallView(caller, hall);
     }
 
-    /** Adds a table on the caller's own side. Number is auto-assigned (next available for that side). */
+    /** Adds a table on the caller's own side of a hall. Number is auto-assigned (next available for that hall and side). */
     @PostMapping("/tables")
     public ResponseEntity<TableResponse> createTable(
             @AuthenticationPrincipal AdminPrincipal caller,

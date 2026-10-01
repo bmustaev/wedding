@@ -1,6 +1,6 @@
 // dashboard.js — admin dashboard: guest CRUD, seating, bulk import.
 import * as api from './api.js';
-import { requireAuth, getRole, getUsername, isSuperAdmin, logout } from './auth.js';
+import { requireAuth, getRole, getUsername, isSuperAdmin, logout, getAccessibleHalls } from './auth.js';
 import {
   showError, clearBanner, setLoading, setEmpty,
   renderPager, escapeHtml, copyToClipboard,
@@ -64,6 +64,10 @@ async function loadGuests(page = 0) {
   }
 }
 
+// Only worth a column for someone with guests in more than one hall
+// (groom side, super admin) — the bride side's guests are all Tashkent.
+const showHallColumn = getAccessibleHalls().length > 1;
+
 function renderGuestsTable(pageResponse) {
   if (pageResponse.content.length === 0) {
     setEmpty(guestsContainer, t('guests-empty-title'), t('guests-empty-hint'));
@@ -74,6 +78,7 @@ function renderGuestsTable(pageResponse) {
     <tr data-id="${g.id}">
       <td>${escapeHtml(g.displayName)}${g.isGroup ? ` <span class="badge">${t('badge-group')}</span>` : ''}</td>
       <td>${g.partySize}</td>
+      ${showHallColumn ? `<td>${escapeHtml(t(`hall-name-${g.hall}`))}</td>` : ''}
       <td>${g.tableLabel ? escapeHtml(g.tableLabel) : '—'}</td>
       <td>${g.firstViewedAt ? t('status-viewed') : t('status-not-viewed')}</td>
       <td class="cell-actions">
@@ -87,7 +92,7 @@ function renderGuestsTable(pageResponse) {
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>${t('th-name')}</th><th>${t('th-party')}</th><th>${t('th-table')}</th><th>${t('th-status')}</th><th></th></tr>
+          <tr><th>${t('th-name')}</th><th>${t('th-party')}</th>${showHallColumn ? `<th>${t('th-hall')}</th>` : ''}<th>${t('th-table')}</th><th>${t('th-status')}</th><th></th></tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>

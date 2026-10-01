@@ -12,6 +12,7 @@ public record GuestResponse(
         List<String> groupMembers,
         String greetingMessage,
         String language,
+        String hall,
         String landingSlug,
         String invitationUrl,
         UUID tableId,

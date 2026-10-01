@@ -45,6 +45,15 @@ export function isSuperAdmin() {
   return getRole() === 'SUPER_ADMIN';
 }
 
+// Which sides have tables and guests in each hall — mirrors Hall.java.
+// Samarkand is the groom side's alone; the bride side never sees it.
+export const HALL_SIDES = { TASHKENT: ['BRIDE', 'GROOM'], SAMARKAND: ['GROOM'] };
+
+/** Halls this admin can open, invite guests to and seat guests in (super admin: all of them). */
+export function getAccessibleHalls() {
+  return Object.keys(HALL_SIDES).filter((hall) => isSuperAdmin() || HALL_SIDES[hall].includes(getSide()));
+}
+
 export function clearSession() {
   localStorage.removeItem(STORAGE_KEY);
 }

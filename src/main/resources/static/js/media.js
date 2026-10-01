@@ -22,7 +22,7 @@ async function init() {
   }
   try {
     const invitation = await api.getPublicInvitation(slug);
-    applyStaticTranslations(normalizeLanguage(invitation.language));
+    applyStaticTranslations(normalizeLanguage(invitation.language), invitation.hall);
     document.getElementById('back-link').href = `/i/${encodeURIComponent(slug)}`;
     loadingEl.hidden = true;
     contentEl.hidden = false;

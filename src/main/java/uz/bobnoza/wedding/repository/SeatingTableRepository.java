@@ -1,5 +1,6 @@
 package uz.bobnoza.wedding.repository;
 
+import uz.bobnoza.wedding.entity.Hall;
 import uz.bobnoza.wedding.entity.SeatingTable;
 import uz.bobnoza.wedding.entity.TableSide;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,7 +19,7 @@ public interface SeatingTableRepository extends JpaRepository<SeatingTable, UUID
 
     Optional<SeatingTable> findBySideAndTableNumber(TableSide side, Integer tableNumber);
 
-    /** Next number to use when an admin adds a new table on their side (1 if they have none yet). */
-    @Query("select coalesce(max(t.tableNumber), 0) + 1 from SeatingTable t where t.side = :side")
-    int nextTableNumberForSide(@Param("side") TableSide side);
+    /** Next number to use when an admin adds a new table on their side of a hall (1 if they have none there yet). */
+    @Query("select coalesce(max(t.tableNumber), 0) + 1 from SeatingTable t where t.hall = :hall and t.side = :side")
+    int nextTableNumberForSide(@Param("hall") Hall hall, @Param("side") TableSide side);
 }

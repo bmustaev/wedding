@@ -8,6 +8,10 @@
 // see invitation.js's applyLanguage(). Static markup ships with Russian
 // text as a no-JS fallback; every translatable element carries a
 // data-i18n key that applyStaticTranslations() overwrites at runtime.
+//
+// Guests are invited to one of two halls (PublicInvitationResponse's
+// `hall`): TASHKENT, the main celebration — what STRINGS below describes
+// — or SAMARKAND, whose venue/date/time copy comes from HALL_STRINGS.
 
 export const LANGUAGES = ['ru', 'uz', 'en'];
 export const DEFAULT_LANGUAGE = 'ru';
@@ -182,17 +186,69 @@ const STRINGS = {
   },
 };
 
-export function t(lang, key) {
-  const code = normalizeLanguage(lang);
-  return STRINGS[code][key] ?? STRINGS[DEFAULT_LANGUAGE][key] ?? key;
+// Per-hall overrides of STRINGS — only the keys that differ from the
+// Tashkent invitation (venue, date, time, and copy that mentions them).
+// Same design and structure otherwise; a key missing here falls back to
+// STRINGS.
+const HALL_STRINGS = {
+  SAMARKAND: {
+    ru: {
+      'hero-when': '10 октября 2026, суббота<br><b>14:00</b>',
+      'hero-place': 'Самарканд, ресторан Богишамол',
+      'invite-p1': '10 октября мы празднуем нашу свадьбу в Самарканде и очень хотим, чтобы вы были рядом. Без вас этот день будет совсем не тот.',
+      'invite-p2': 'Пусть этот день запомнится теплом, смехом и тем, что за одним столом собрались самые родные и близкие.',
+      'invite-no-children': 'Небольшая просьба: этот праздник мы хотим провести в кругу взрослых, поэтому, пожалуйста, приходите без детей. Спасибо за понимание!',
+      'venue-name': 'Ресторан Богишамол',
+      'fact-address-value': 'Самарканд, ресторан Богишамол',
+      'fact-date-value': '10 октября 2026, суббота',
+      'fact-time-value': '14:00',
+      'media-page-explanation': 'Мы включим загрузку фото и видео прямо 10 октября, чтобы вы могли поделиться моментами сразу с торжества. Загляните сюда снова в этот день.',
+      'footer-meta': '10 октября 2026, Самарканд',
+    },
+    uz: {
+      'hero-when': '10-oktabr 2026, shanba<br><b>14:00</b>',
+      'hero-place': "Samarqand, Bog'ishamol restorani",
+      'invite-p1': "10-oktabr kuni Samarqandda to'yimizni nishonlaymiz va juda xohlaymizki, siz ham yonimizda bo'lsangiz. Sizsiz bu kun butunlay boshqacha bo'lardi.",
+      'invite-p2': "Ushbu kun iliqlik, kulgi va bir dasturxon atrofida eng aziz va yaqinlarimiz yig'ilgani bilan yodda qolsin.",
+      'invite-no-children': "Kichik bir iltimos: bu bayramni faqat kattalar davrasida o'tkazishni xohlaymiz, shuning uchun farzandlaringizni uyda qoldirib kelishingizni so'raymiz. Tushunganingiz uchun rahmat!",
+      'venue-name': "Bog'ishamol restorani",
+      'fact-address-value': "Samarqand, Bog'ishamol restorani",
+      'fact-date-value': '10-oktabr 2026, shanba',
+      'fact-time-value': '14:00',
+      'media-page-explanation': "Foto va video yuklashni aynan 10-oktabr kuni yoqamiz, shunda siz to'ydagi lahzalarni darhol ulasha olasiz. Shu kuni bu yerga yana qaytib keling.",
+      'footer-meta': '10-oktabr 2026, Samarqand',
+    },
+    en: {
+      'hero-when': 'October 10, 2026, Saturday<br><b>14:00</b>',
+      'hero-place': 'Samarkand, Bogishamol restaurant',
+      'invite-p1': "On October 10th we're celebrating our wedding in Samarkand, and we'd love for you to be there with us. The day just wouldn't be the same without you.",
+      'invite-p2': 'Let this day be remembered for its warmth, laughter, and having our nearest and dearest gathered around one table.',
+      'invite-no-children': "One small request: we'd love for this celebration to be adults-only, so please leave the little ones at home. Thank you for understanding!",
+      'venue-name': 'Bogishamol Restaurant',
+      'fact-address-value': 'Samarkand, Bogishamol Restaurant',
+      'fact-date-value': 'October 10, 2026, Saturday',
+      'fact-time-value': '14:00',
+      'media-page-explanation': "We'll turn on photo and video uploads on October 10th itself, so you can share moments straight from the celebration. Check back here that day.",
+      'footer-meta': 'October 10, 2026, Samarkand',
+    },
+  },
+};
+
+function lookup(code, key, hall) {
+  return HALL_STRINGS[hall]?.[code]?.[key] ?? STRINGS[code][key];
 }
 
-/** Sets every [data-i18n] element's innerHTML from the dictionary for `lang`. */
-export function applyStaticTranslations(lang) {
+export function t(lang, key, hall) {
+  const code = normalizeLanguage(lang);
+  return lookup(code, key, hall) ?? STRINGS[DEFAULT_LANGUAGE][key] ?? key;
+}
+
+/** Sets every [data-i18n] element's innerHTML from the dictionary for `lang` (and the guest's `hall`, if known). */
+export function applyStaticTranslations(lang, hall) {
   const code = normalizeLanguage(lang);
   document.documentElement.lang = code;
   document.querySelectorAll('[data-i18n]').forEach((el) => {
-    const value = STRINGS[code][el.dataset.i18n];
+    const value = lookup(code, el.dataset.i18n, hall);
     if (value != null) el.innerHTML = value;
   });
 }
@@ -238,13 +294,26 @@ export function countdownWord(lang, unit, n) {
 }
 
 const MAP_QUERY = {
-  ru: 'Ресторан Santini, Ташкент, улица Чинабад, 61/1',
-  uz: "Santini restorani, Toshkent, Chinobod ko'chasi, 61/1",
-  en: 'Santini Restaurant, Tashkent, Chinabad street, 61/1',
+  TASHKENT: {
+    ru: 'Ресторан Santini, Ташкент, улица Чинабад, 61/1',
+    uz: "Santini restorani, Toshkent, Chinobod ko'chasi, 61/1",
+    en: 'Santini Restaurant, Tashkent, Chinabad street, 61/1',
+  },
 };
 
-export function mapQueryFor(lang) {
-  return MAP_QUERY[normalizeLanguage(lang)];
+// Samarkand links to exact pins ("lat,lng" — both map searches accept it)
+// rather than a name search, one per provider: Yandex's own pin for the
+// restaurant, and Google's plus code MX63+PG (full: 8JF8MX63+PG) decoded.
+const MAP_PIN = {
+  SAMARKAND: {
+    yandex: '39.661840,66.953679',
+    google: '39.661812,66.953812',
+  },
+};
+
+/** Search text for `provider` ('yandex' | 'google') — an exact pin where the hall has one, else the address in `lang`. */
+export function mapQueryFor(lang, hall, provider) {
+  return MAP_PIN[hall]?.[provider] ?? (MAP_QUERY[hall] ?? MAP_QUERY.TASHKENT)[normalizeLanguage(lang)];
 }
 
 const DEFAULT_GREETING = {

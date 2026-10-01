@@ -264,22 +264,10 @@ BEGIN
     END IF;
 END$$
 
-DROP TRIGGER IF EXISTS trg_guests_table_capacity_insert$$
-DROP TRIGGER IF EXISTS trg_guests_table_capacity_update$$
-
-CREATE TRIGGER trg_guests_table_capacity_insert
-BEFORE INSERT ON guests
-FOR EACH ROW
-BEGIN
-    CALL check_table_capacity(NEW.table_id, NEW.id, NEW.party_size);
-END$$
-
-CREATE TRIGGER trg_guests_table_capacity_update
-BEFORE UPDATE ON guests
-FOR EACH ROW
-BEGIN
-    CALL check_table_capacity(NEW.table_id, NEW.id, NEW.party_size);
-END$$
+-- The guests triggers that call check_table_capacity are created further
+-- down (HALLS section), after guests.hall exists — their bodies also check
+-- NEW.hall, and MariaDB rejects a trigger that references a column the
+-- table doesn't have yet.
 
 -- =====================================================================
 -- VIEWS
@@ -362,7 +350,46 @@ ALTER TABLE seating_tables MODIFY COLUMN table_number INT NULL$$
 
 ALTER TABLE seating_tables DROP INDEX IF EXISTS uk_seating_tables_number$$
 
-ALTER TABLE seating_tables ADD UNIQUE INDEX IF NOT EXISTS uk_seating_tables_side_number (side, table_number)$$
+-- (side, table_number) was the uniqueness rule before halls existed —
+-- superseded by uk_seating_tables_hall_side_number below.
+ALTER TABLE seating_tables DROP INDEX IF EXISTS uk_seating_tables_side_number$$
+
+-- =====================================================================
+-- HALLS — the wedding is celebrated in two places: the main Tashkent
+-- hall (Santini: head/bride/groom tables) and a second, groom-side-only
+-- hall in Samarkand (Bogishamol). Every table and every guest belongs to
+-- exactly one hall; a guest's hall also decides which invitation (venue,
+-- date, time) they see. Existing rows default to 'tashkent'.
+-- =====================================================================
+
+ALTER TABLE seating_tables
+    ADD COLUMN IF NOT EXISTS hall VARCHAR(20) NOT NULL DEFAULT 'tashkent' CHECK (hall IN ('tashkent', 'samarkand'))$$
+
+-- Table numbers are unique per hall and side, so Samarkand's "1B".."8B"
+-- coexist with Tashkent's own "1B", "2B", ...
+ALTER TABLE seating_tables ADD UNIQUE INDEX IF NOT EXISTS uk_seating_tables_hall_side_number (hall, side, table_number)$$
+
+-- Samarkand is the groom side's hall only — no bride or head tables there.
+-- Guarded via information_schema rather than ADD CONSTRAINT IF NOT EXISTS,
+-- which older MariaDB releases (e.g. the 10.x that apt installs) may not accept.
+DROP PROCEDURE IF EXISTS add_samarkand_groom_check$$
+
+CREATE PROCEDURE add_samarkand_groom_check()
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+                   WHERE CONSTRAINT_SCHEMA = DATABASE()
+                     AND TABLE_NAME = 'seating_tables'
+                     AND CONSTRAINT_NAME = 'ck_seating_tables_samarkand_groom') THEN
+        ALTER TABLE seating_tables
+            ADD CONSTRAINT ck_seating_tables_samarkand_groom CHECK (hall <> 'samarkand' OR side = 'groom');
+    END IF;
+END$$
+
+CALL add_samarkand_groom_check()$$
+DROP PROCEDURE IF EXISTS add_samarkand_groom_check$$
+
+ALTER TABLE guests
+    ADD COLUMN IF NOT EXISTS hall VARCHAR(20) NOT NULL DEFAULT 'tashkent' CHECK (hall IN ('tashkent', 'samarkand'))$$
 
 -- The original 8 generic tables (from before this feature existed) have
 -- no meaningful side and don't fit the new model — clear them out ONCE
@@ -399,6 +426,7 @@ DROP PROCEDURE IF EXISTS apply_hall_layout_migration$$
 CREATE OR REPLACE VIEW v_table_occupancy AS
 SELECT
     st.id AS table_id,
+    st.hall,
     st.side,
     st.table_number,
     CASE
@@ -412,8 +440,8 @@ SELECT
     COUNT(g.id) AS parties_seated
 FROM seating_tables st
 LEFT JOIN guests g ON g.table_id = st.id AND g.is_deleted = 0
-GROUP BY st.id, st.side, st.table_number, st.capacity
-ORDER BY st.side, st.table_number$$
+GROUP BY st.id, st.hall, st.side, st.table_number, st.capacity
+ORDER BY st.hall, st.side, st.table_number$$
 
 DROP PROCEDURE IF EXISTS get_seating_chart_for_admin$$
 
@@ -427,6 +455,7 @@ BEGIN
 
     SELECT
         st.id AS table_id,
+        st.hall,
         st.side,
         st.table_number,
         occ.label,
@@ -446,5 +475,48 @@ BEGIN
     FROM seating_tables st
     JOIN v_table_occupancy occ ON occ.table_id = st.id
     LEFT JOIN guests g ON g.table_id = st.id AND g.is_deleted = 0
-    ORDER BY st.side, st.table_number, is_own_guest DESC, g.display_name;
+    ORDER BY st.hall, st.side, st.table_number, is_own_guest DESC, g.display_name;
+END$$
+
+-- ---------------------------------------------------------------------
+-- Guests triggers: a guest may only sit at a table in their own hall,
+-- and the table must have room (check_table_capacity, defined above).
+-- ---------------------------------------------------------------------
+
+DROP PROCEDURE IF EXISTS check_table_hall$$
+
+CREATE PROCEDURE check_table_hall(
+    IN p_table_id CHAR(36),
+    IN p_hall VARCHAR(20)
+)
+BEGIN
+    DECLARE v_table_hall VARCHAR(20);
+
+    IF p_table_id IS NOT NULL THEN
+        SELECT hall INTO v_table_hall FROM seating_tables WHERE id = p_table_id;
+
+        IF v_table_hall <> p_hall THEN
+            SIGNAL SQLSTATE '45000'
+                SET MESSAGE_TEXT = 'This table is in a different hall than the guest is invited to';
+        END IF;
+    END IF;
+END$$
+
+DROP TRIGGER IF EXISTS trg_guests_table_capacity_insert$$
+DROP TRIGGER IF EXISTS trg_guests_table_capacity_update$$
+
+CREATE TRIGGER trg_guests_table_capacity_insert
+BEFORE INSERT ON guests
+FOR EACH ROW
+BEGIN
+    CALL check_table_hall(NEW.table_id, NEW.hall);
+    CALL check_table_capacity(NEW.table_id, NEW.id, NEW.party_size);
+END$$
+
+CREATE TRIGGER trg_guests_table_capacity_update
+BEFORE UPDATE ON guests
+FOR EACH ROW
+BEGIN
+    CALL check_table_hall(NEW.table_id, NEW.hall);
+    CALL check_table_capacity(NEW.table_id, NEW.id, NEW.party_size);
 END$$

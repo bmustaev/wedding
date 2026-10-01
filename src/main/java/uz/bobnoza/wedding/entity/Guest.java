@@ -63,6 +63,10 @@ public class Guest {
     @Column(nullable = false)
     private String language = "ru";
 
+    /** Which celebration this guest is invited to — decides their invitation's venue/date and which tables they can sit at. */
+    @Column(nullable = false)
+    private Hall hall = Hall.TASHKENT;
+
     /** Unguessable public token used in the invitation URL. Never expose {@link #id} instead. */
     @Column(name = "landing_slug", nullable = false, unique = true, updatable = false)
     private String landingSlug;
@@ -96,7 +100,7 @@ public class Guest {
     }
 
     public Guest(UUID id, Admin admin, String displayName, boolean group, int partySize,
-                 List<String> groupMembers, String greetingMessage, String language, String landingSlug,
+                 List<String> groupMembers, String greetingMessage, String language, Hall hall, String landingSlug,
                  Instant pageGeneratedAt, Instant firstViewedAt, SeatingTable table, boolean deleted,
                  Instant deletedAt, Instant createdAt, Instant updatedAt) {
         this.id = id;
@@ -107,6 +111,7 @@ public class Guest {
         this.groupMembers = groupMembers;
         this.greetingMessage = greetingMessage;
         this.language = language;
+        this.hall = hall;
         this.landingSlug = landingSlug;
         this.pageGeneratedAt = pageGeneratedAt;
         this.firstViewedAt = firstViewedAt;
@@ -225,6 +230,14 @@ public class Guest {
         this.language = language;
     }
 
+    public Hall getHall() {
+        return hall;
+    }
+
+    public void setHall(Hall hall) {
+        this.hall = hall;
+    }
+
     public String getLandingSlug() {
         return landingSlug;
     }
@@ -310,6 +323,7 @@ public class Guest {
         private List<String> groupMembers;
         private String greetingMessage;
         private String language = "ru";
+        private Hall hall = Hall.TASHKENT;
         private String landingSlug;
         private Instant pageGeneratedAt;
         private Instant firstViewedAt;
@@ -327,6 +341,7 @@ public class Guest {
         public Builder groupMembers(List<String> groupMembers) { this.groupMembers = groupMembers; return this; }
         public Builder greetingMessage(String greetingMessage) { this.greetingMessage = greetingMessage; return this; }
         public Builder language(String language) { this.language = language; return this; }
+        public Builder hall(Hall hall) { this.hall = hall; return this; }
         public Builder landingSlug(String landingSlug) { this.landingSlug = landingSlug; return this; }
         public Builder pageGeneratedAt(Instant pageGeneratedAt) { this.pageGeneratedAt = pageGeneratedAt; return this; }
         public Builder firstViewedAt(Instant firstViewedAt) { this.firstViewedAt = firstViewedAt; return this; }
@@ -338,7 +353,7 @@ public class Guest {
 
         public Guest build() {
             return new Guest(id, admin, displayName, group, partySize, groupMembers, greetingMessage,
-                    language, landingSlug, pageGeneratedAt, firstViewedAt, table, deleted, deletedAt,
+                    language, hall, landingSlug, pageGeneratedAt, firstViewedAt, table, deleted, deletedAt,
                     createdAt, updatedAt);
         }
     }

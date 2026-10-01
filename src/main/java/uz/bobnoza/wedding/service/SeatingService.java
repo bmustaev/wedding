@@ -8,7 +8,9 @@ import uz.bobnoza.wedding.dto.seating.SeatingChartEntryResponse;
 import uz.bobnoza.wedding.dto.seating.TableOccupancyResponse;
 import uz.bobnoza.wedding.dto.seating.TableResponse;
 import uz.bobnoza.wedding.dto.seating.UnassignedGuestResponse;
+import uz.bobnoza.wedding.entity.AdminSide;
 import uz.bobnoza.wedding.entity.Guest;
+import uz.bobnoza.wedding.entity.Hall;
 import uz.bobnoza.wedding.entity.SeatingTable;
 import uz.bobnoza.wedding.entity.TableSide;
 import uz.bobnoza.wedding.exception.CapacityExceededException;
@@ -49,6 +51,10 @@ import java.util.UUID;
  * super_admin bypasses every ownership/side restriction in this class —
  * see the isSuperAdmin() branches below. It's the one role explicitly
  * meant to manage guests and tables across both sides without limitation.
+ *
+ * Every table stands in one {@link Hall}. A hall the caller can't access
+ * (the bride side and Samarkand) is filtered out of every listing, and any
+ * direct reference to one of its tables is a 404, as if it didn't exist.
  */
 @Service
 public class SeatingService {
@@ -69,39 +75,50 @@ public class SeatingService {
     }
 
     @Transactional(readOnly = true)
-    public List<TableOccupancyResponse> listOccupancy() {
+    public List<TableOccupancyResponse> listOccupancy(AdminPrincipal caller) {
         return jdbcTemplate.query(
-                "SELECT table_id, side, table_number, label, capacity, seats_taken, seats_left FROM v_table_occupancy",
+                "SELECT table_id, hall, side, table_number, label, capacity, seats_taken, seats_left FROM v_table_occupancy",
                 (rs, rowNum) -> new TableOccupancyResponse(
                         UUID.fromString(rs.getString("table_id")),
+                        rs.getString("hall").toUpperCase(),
                         rs.getString("side").toUpperCase(),
                         (Integer) rs.getObject("table_number"),
                         rs.getString("label"),
                         rs.getInt("capacity"),
                         rs.getInt("seats_taken"),
-                        rs.getInt("seats_left")));
+                        rs.getInt("seats_left")))
+                .stream()
+                .filter(t -> caller.canAccessHall(Hall.valueOf(t.hall())))
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public List<SeatingChartEntryResponse> getSeatingChart(AdminPrincipal caller) {
-        return queryChartRows(caller.getAdminId());
+        return queryChartRows(caller.getAdminId()).stream()
+                .filter(row -> caller.canAccessHall(Hall.valueOf(row.hall())))
+                .toList();
     }
 
     /**
-     * Everything the hall-map page needs in one call: the head table, every
-     * bride table, every groom table (each with its seated guests, isolation
+     * Everything the hall-map page needs for one hall in one call: the head
+     * table (Tashkent only), every bride table, every groom table (each with its seated guests, isolation
      * rules already applied — super_admin sees every guest by name, since
      * the stored procedure grants it the same visibility as an owner), plus
      * the unassigned-guest roster: the caller's own guests, or — for
      * super_admin — every admin's unassigned guests, since it has no side
-     * or ownership of its own to scope that list by.
+     * or ownership of its own to scope that list by. Only guests invited to
+     * this hall are listed as unassigned — they can't be seated anywhere else.
      */
     @Transactional(readOnly = true)
-    public HallViewResponse getHallView(AdminPrincipal caller) {
+    public HallViewResponse getHallView(AdminPrincipal caller, String requestedHall) {
+        Hall hall = HallResolver.resolve(caller, requestedHall);
         List<SeatingChartEntryResponse> rows = queryChartRows(caller.getAdminId());
 
         Map<UUID, HallTableBuilder> byTable = new LinkedHashMap<>();
         for (SeatingChartEntryResponse row : rows) {
+            if (!row.hall().equals(hall.name())) {
+                continue;
+            }
             HallTableBuilder builder = byTable.computeIfAbsent(row.tableId(), id -> new HallTableBuilder(row));
             if (row.guestId() != null) {
                 builder.guests.add(new HallGuestEntry(row.guestId(), row.displayName(), row.partySize(), row.ownGuest(), row.invitationUrl()));
@@ -123,28 +140,31 @@ public class SeatingService {
         }
 
         List<UnassignedGuestResponse> unassigned = caller.isSuperAdmin()
-                ? guestRepository.findAllUnassignedAcrossAllAdmins().stream()
+                ? guestRepository.findAllUnassignedAcrossAllAdmins(hall).stream()
                         .map(g -> new UnassignedGuestResponse(
                                 g.getId(), g.getDisplayName(), g.getPartySize(), g.isGroup(), g.getAdmin().getUsername(),
                                 invitationBaseUrl + "/" + g.getLandingSlug()))
                         .toList()
                 : guestRepository.findAllByAdminIdAndDeletedFalseOrderByDisplayNameAsc(caller.getAdminId(), Pageable.unpaged())
                         .stream()
-                        .filter(g -> g.getTable() == null)
+                        .filter(g -> g.getTable() == null && g.getHall() == hall)
                         .map(g -> new UnassignedGuestResponse(g.getId(), g.getDisplayName(), g.getPartySize(), g.isGroup(), null,
                                 invitationBaseUrl + "/" + g.getLandingSlug()))
                         .toList();
 
-        return new HallViewResponse(headTable, brideTables, groomTables, unassigned);
+        return new HallViewResponse(hall.name(), headTable, brideTables, groomTables, unassigned);
     }
 
     @Transactional
     public void assignGuestToTable(AdminPrincipal caller, UUID guestId, UUID tableId) {
         Guest guest = resolveGuestForAction(caller, guestId);
-        SeatingTable table = seatingTableRepository.findById(tableId)
-                .orElseThrow(() -> new ResourceNotFoundException("Table not found: " + tableId));
+        SeatingTable table = requireAccessibleTable(caller, tableId);
 
         requireOwnSideOrHead(caller, table);
+        if (table.getHall() != guest.getHall()) {
+            throw new ForbiddenOperationException(
+                    "This guest is invited to the " + guest.getHall().name() + " hall and can only be seated at its tables");
+        }
 
         int seatsTakenByOthers = guestRepository.sumPartySizeAtTableExcluding(tableId, guestId);
         int seatsLeft = table.getCapacity() - seatsTakenByOthers;
@@ -170,10 +190,15 @@ public class SeatingService {
 
     @Transactional
     public TableResponse createTable(AdminPrincipal caller, CreateTableRequest request) {
+        Hall hall = HallResolver.resolve(caller, request.hall());
         TableSide side = resolveSideForTableAction(caller, request.side());
-        int nextNumber = seatingTableRepository.nextTableNumberForSide(side);
+        if (!hall.isOpenTo(AdminSide.valueOf(side.name()))) {
+            throw new ForbiddenOperationException("The " + hall.name() + " hall has no " + side.name() + "-side tables");
+        }
+        int nextNumber = seatingTableRepository.nextTableNumberForSide(hall, side);
 
         SeatingTable table = SeatingTable.builder()
+                .hall(hall)
                 .side(side)
                 .tableNumber(nextNumber)
                 .capacity(request.capacity() != null ? request.capacity() : 12)
@@ -184,8 +209,7 @@ public class SeatingService {
 
     @Transactional
     public void deleteTable(AdminPrincipal caller, UUID tableId) {
-        SeatingTable table = seatingTableRepository.findById(tableId)
-                .orElseThrow(() -> new ResourceNotFoundException("Table not found: " + tableId));
+        SeatingTable table = requireAccessibleTable(caller, tableId);
 
         if (table.getSide() == TableSide.HEAD) {
             throw new ForbiddenOperationException("The head table can't be removed");
@@ -218,6 +242,13 @@ public class SeatingService {
         }
         return guestRepository.findByIdAndAdminIdAndDeletedFalse(guestId, caller.getAdminId())
                 .orElseThrow(() -> new ResourceNotFoundException("Guest not found: " + guestId));
+    }
+
+    /** 404 for a table in a hall the caller can't access, same as for one that doesn't exist. */
+    private SeatingTable requireAccessibleTable(AdminPrincipal caller, UUID tableId) {
+        return seatingTableRepository.findById(tableId)
+                .filter(table -> caller.canAccessHall(table.getHall()))
+                .orElseThrow(() -> new ResourceNotFoundException("Table not found: " + tableId));
     }
 
     private void requireOwnSideOrHead(AdminPrincipal caller, SeatingTable table) {
@@ -267,6 +298,7 @@ public class SeatingService {
                     String landingSlug = rs.getString("landing_slug");
                     return new SeatingChartEntryResponse(
                             UUID.fromString(rs.getString("table_id")),
+                            rs.getString("hall").toUpperCase(),
                             rs.getString("side").toUpperCase(),
                             (Integer) rs.getObject("table_number"),
                             rs.getString("label"),
@@ -283,6 +315,7 @@ public class SeatingService {
     private TableResponse toTableResponse(SeatingTable table, int seatsTaken) {
         return new TableResponse(
                 table.getId(),
+                table.getHall().name(),
                 table.getSide().name(),
                 table.getTableNumber(),
                 table.getLabel(),

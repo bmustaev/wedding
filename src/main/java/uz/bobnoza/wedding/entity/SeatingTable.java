@@ -14,10 +14,10 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * One table in the hall — belongs to {@link #side}: BRIDE, GROOM, or the
- * single fixed HEAD table. tableNumber is null only for the head table;
- * for BRIDE/GROOM it's unique per side (schema.sql: UNIQUE(side, table_number)),
- * not globally, so a "1B" and a "1D" can coexist.
+ * One table in a {@link Hall} — belongs to {@link #side}: BRIDE, GROOM, or the
+ * single fixed HEAD table (Tashkent only). tableNumber is null only for the head table;
+ * for BRIDE/GROOM it's unique per hall and side (schema.sql: UNIQUE(hall, side, table_number)),
+ * not globally, so a "1B" and a "1D" can coexist, and so can Tashkent's and Samarkand's "1B".
  */
 @Entity
 @Table(name = "seating_tables")
@@ -26,6 +26,9 @@ public class SeatingTable {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @Column(nullable = false)
+    private Hall hall = Hall.TASHKENT;
 
     @Column(nullable = false)
     private TableSide side;
@@ -48,9 +51,10 @@ public class SeatingTable {
         // required by JPA
     }
 
-    public SeatingTable(UUID id, TableSide side, Integer tableNumber, Integer capacity,
+    public SeatingTable(UUID id, Hall hall, TableSide side, Integer tableNumber, Integer capacity,
                         Instant createdAt, Instant updatedAt) {
         this.id = id;
+        this.hall = hall;
         this.side = side;
         this.tableNumber = tableNumber;
         this.capacity = capacity;
@@ -77,6 +81,14 @@ public class SeatingTable {
 
     public void setId(UUID id) {
         this.id = id;
+    }
+
+    public Hall getHall() {
+        return hall;
+    }
+
+    public void setHall(Hall hall) {
+        this.hall = hall;
     }
 
     public TableSide getSide() {
@@ -133,6 +145,7 @@ public class SeatingTable {
 
     public static final class Builder {
         private UUID id;
+        private Hall hall = Hall.TASHKENT;
         private TableSide side;
         private Integer tableNumber;
         private Integer capacity = 12;
@@ -140,6 +153,7 @@ public class SeatingTable {
         private Instant updatedAt;
 
         public Builder id(UUID id) { this.id = id; return this; }
+        public Builder hall(Hall hall) { this.hall = hall; return this; }
         public Builder side(TableSide side) { this.side = side; return this; }
         public Builder tableNumber(Integer tableNumber) { this.tableNumber = tableNumber; return this; }
         public Builder capacity(Integer capacity) { this.capacity = capacity; return this; }
@@ -147,7 +161,7 @@ public class SeatingTable {
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
 
         public SeatingTable build() {
-            return new SeatingTable(id, side, tableNumber, capacity, createdAt, updatedAt);
+            return new SeatingTable(id, hall, side, tableNumber, capacity, createdAt, updatedAt);
         }
     }
 }
