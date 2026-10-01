@@ -47,14 +47,7 @@
   <!-- ── My photos ── -->
   <section class="media-panel" id="panel-photos" role="tabpanel" aria-labelledby="tab-photos" hidden>
     <p class="panel-hint" id="photos-hint"></p>
-    <fieldset class="visibility-pick" id="photos-visibility">
-      <legend data-mi18n="vis-legend">Кто увидит</legend>
-      <div class="vis-options">
-        <label><input type="radio" name="photos-visibility" value="PUBLIC" checked><span data-mi18n="vis-public">Все гости</span></label>
-        <label><input type="radio" name="photos-visibility" value="PRIVATE"><span data-mi18n="vis-private">Только я</span></label>
-      </div>
-      <p class="vis-hint" id="photos-visibility-hint"></p>
-    </fieldset>
+    <p class="vis-note" id="photos-vis-note"></p>
     <div class="pick-row">
       <label class="btn pick-btn" id="pick-photos-btn">
         <input type="file" id="pick-photos" accept="image/*,.heic,.heif" multiple hidden>
@@ -70,14 +63,7 @@
   <!-- ── My videos ── -->
   <section class="media-panel" id="panel-videos" role="tabpanel" aria-labelledby="tab-videos" hidden>
     <p class="panel-hint" id="videos-hint"></p>
-    <fieldset class="visibility-pick" id="videos-visibility">
-      <legend data-mi18n="vis-legend">Кто увидит</legend>
-      <div class="vis-options">
-        <label><input type="radio" name="videos-visibility" value="PUBLIC"><span data-mi18n="vis-public">Все гости</span></label>
-        <label><input type="radio" name="videos-visibility" value="PRIVATE" checked><span data-mi18n="vis-private">Только я</span></label>
-      </div>
-      <p class="vis-hint" id="videos-visibility-hint"></p>
-    </fieldset>
+    <p class="vis-note" id="videos-vis-note"></p>
     <div class="pick-row">
       <label class="btn pick-btn" id="pick-videos-btn">
         <input type="file" id="pick-videos" accept="video/*,.mov,.mp4,.m4v" multiple hidden>

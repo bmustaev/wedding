@@ -3,10 +3,10 @@
 // slug-as-credential model as invitation.js (see API.md, section 7).
 //
 // Three tabs:
-// - My photos / My videos: pick who sees new uploads (all guests in the
-//   hall = PUBLIC, only me = PRIVATE; admins see both), upload (chunked +
-//   resumable, js/uploader.js), watch the upload and then the server-side
-//   conversion progress, view, switch visibility, delete.
+// - My photos / My videos: upload (chunked + resumable, js/uploader.js;
+//   new photos go to all guests in the hall = PUBLIC, new videos are
+//   PRIVATE = only the guest and admins), watch the upload and then the
+//   server-side conversion progress, view, switch visibility, delete.
 // - Guests' feed: every guest's PUBLIC photos and videos in this guest's
 //   hall, grouped by table (GET /feed). The guest can delete only their own.
 //
@@ -38,8 +38,8 @@ const TYPES = {
     quota: document.getElementById('photos-quota'),
     picker: document.getElementById('pick-photos'),
     pickBtn: document.getElementById('pick-photos-btn'),
-    visibility: document.getElementById('photos-visibility'),
-    visibilityHint: document.getElementById('photos-visibility-hint'),
+    defaultVisibility: 'PUBLIC',
+    visibilityNote: document.getElementById('photos-vis-note'),
     max: 15,
   },
   VIDEO: {
@@ -49,8 +49,8 @@ const TYPES = {
     quota: document.getElementById('videos-quota'),
     picker: document.getElementById('pick-videos'),
     pickBtn: document.getElementById('pick-videos-btn'),
-    visibility: document.getElementById('videos-visibility'),
-    visibilityHint: document.getElementById('videos-visibility-hint'),
+    defaultVisibility: 'PRIVATE',
+    visibilityNote: document.getElementById('videos-vis-note'),
     max: 4,
   },
 };
@@ -98,7 +98,7 @@ async function init() {
     TYPES.VIDEO.max = countOwn('VIDEO') + invitation.videosRemaining;
     document.getElementById('photos-hint').textContent = mt('photos-hint', { max: TYPES.PHOTO.max });
     document.getElementById('videos-hint').textContent = mt('videos-hint', { max: TYPES.VIDEO.max, seconds: MAX_VIDEO_SECONDS });
-    renderVisibilityHints();
+    renderVisibilityNotes();
 
     loadingEl.hidden = true;
     contentEl.hidden = false;
@@ -169,19 +169,14 @@ function renderQuota() {
   }
 }
 
-/** PUBLIC | PRIVATE — what the guest picked for the next files of this type. */
-function chosenVisibility(type) {
-  return TYPES[type].visibility.querySelector('input:checked').value;
-}
-
-function renderVisibilityHints() {
+/** Above the picker: what the tiles' corner icon means and that tapping it switches. */
+function renderVisibilityNotes() {
   for (const [type, ui] of Object.entries(TYPES)) {
-    ui.visibilityHint.textContent = mt(`vis-hint-${chosenVisibility(type)}`);
+    ui.visibilityNote.innerHTML = `
+      <span class="vis-key"><span class="vis-icon">${peopleIcon()}</span>${escapeHtml(mt('vis-note-public'))}</span>
+      <span class="vis-key"><span class="vis-icon is-private">${lockIcon()}</span>${escapeHtml(mt('vis-note-private'))}</span>
+      <span class="vis-tap">${escapeHtml(mt(`vis-note-tap-${type}`))}</span>`;
   }
-}
-
-for (const ui of Object.values(TYPES)) {
-  ui.visibility.addEventListener('change', renderVisibilityHints);
 }
 
 for (const [type, ui] of Object.entries(TYPES)) {
@@ -200,7 +195,7 @@ for (const [type, ui] of Object.entries(TYPES)) {
     if (!uploader.tasks().some((t) => t.mediaType === type)) Object.assign(batch, newBatch());
     batch.total += accepted.length;
     batch.totalBytes += accepted.reduce((sum, f) => sum + f.size, 0);
-    uploader.add(accepted, type, chosenVisibility(type));
+    uploader.add(accepted, type, ui.defaultVisibility);
   });
 }
 
