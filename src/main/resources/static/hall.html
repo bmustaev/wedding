@@ -23,6 +23,7 @@
       <nav class="sidebar-nav">
         <button type="button" id="nav-dashboard" data-i18n="nav-guests">Guests</button>
         <button type="button" class="active" data-i18n="nav-hall">Hall</button>
+        <button type="button" id="nav-media" data-i18n="nav-media">Media</button>
         <button type="button" id="nav-super-admin" hidden data-i18n="nav-admins">Admins</button>
       </nav>
 
@@ -174,11 +175,11 @@
         <div style="display:flex; gap:0.6em; flex-wrap:wrap;">
           <label class="btn btn-sm" for="guest-upload-photo" style="margin:0;">
             <span data-i18n="add-photo-btn">Add photo</span>
-            <input type="file" id="guest-upload-photo" accept="image/*" hidden />
+            <input type="file" id="guest-upload-photo" accept="image/*,.heic,.heif" hidden />
           </label>
           <label class="btn btn-sm" for="guest-upload-video" style="margin:0;">
             <span data-i18n="add-video-btn">Add video</span>
-            <input type="file" id="guest-upload-video" accept="video/*" hidden />
+            <input type="file" id="guest-upload-video" accept="video/*,.mov,.mp4,.m4v" hidden />
           </label>
         </div>
       </div>

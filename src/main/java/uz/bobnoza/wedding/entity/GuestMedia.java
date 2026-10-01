@@ -16,7 +16,14 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
-/** A photo or congratulation video uploaded to a guest's profile. */
+/**
+ * A photo or congratulation video uploaded to a guest's profile.
+ * {@link #storageKey} is the untouched original; {@link #displayKey} and
+ * {@link #thumbKey} are the browser-safe copies MediaProcessor makes from it
+ * (photo: JPEG + JPEG thumbnail, video: H.264 MP4 + JPEG poster), set once
+ * {@link #processingStatus} is READY. {@link #visibility} decides whether
+ * other guests in the hall see it (admins always do).
+ */
 @Entity
 @Table(name = "guest_media")
 public class GuestMedia {
@@ -57,6 +64,21 @@ public class GuestMedia {
     @Column(name = "moderation_status", nullable = false)
     private ModerationStatus moderationStatus = ModerationStatus.APPROVED;
 
+    @Column(name = "visibility", nullable = false)
+    private MediaVisibility visibility = MediaVisibility.PUBLIC;
+
+    @Column(name = "display_key")
+    private String displayKey;
+
+    @Column(name = "thumb_key")
+    private String thumbKey;
+
+    @Column(name = "processing_status", nullable = false)
+    private ProcessingStatus processingStatus = ProcessingStatus.PROCESSING;
+
+    @Column(name = "processing_error")
+    private String processingError;
+
     @Column(name = "uploaded_at", nullable = false)
     private Instant uploadedAt = Instant.now();
 
@@ -74,7 +96,8 @@ public class GuestMedia {
 
     public GuestMedia(UUID id, Guest guest, MediaType mediaType, String storageKey, String originalFilename,
                        String mimeType, long sizeBytes, Integer widthPx, Integer heightPx, Integer durationSeconds,
-                       ModerationStatus moderationStatus, Instant uploadedAt, Instant createdAt, Instant updatedAt) {
+                       ModerationStatus moderationStatus, MediaVisibility visibility, Instant uploadedAt,
+                       Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.guest = guest;
         this.mediaType = mediaType;
@@ -86,6 +109,7 @@ public class GuestMedia {
         this.heightPx = heightPx;
         this.durationSeconds = durationSeconds;
         this.moderationStatus = moderationStatus;
+        this.visibility = visibility;
         this.uploadedAt = uploadedAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -183,6 +207,46 @@ public class GuestMedia {
         this.moderationStatus = moderationStatus;
     }
 
+    public MediaVisibility getVisibility() {
+        return visibility;
+    }
+
+    public void setVisibility(MediaVisibility visibility) {
+        this.visibility = visibility;
+    }
+
+    public String getDisplayKey() {
+        return displayKey;
+    }
+
+    public void setDisplayKey(String displayKey) {
+        this.displayKey = displayKey;
+    }
+
+    public String getThumbKey() {
+        return thumbKey;
+    }
+
+    public void setThumbKey(String thumbKey) {
+        this.thumbKey = thumbKey;
+    }
+
+    public ProcessingStatus getProcessingStatus() {
+        return processingStatus;
+    }
+
+    public void setProcessingStatus(ProcessingStatus processingStatus) {
+        this.processingStatus = processingStatus;
+    }
+
+    public String getProcessingError() {
+        return processingError;
+    }
+
+    public void setProcessingError(String processingError) {
+        this.processingError = processingError;
+    }
+
     public Instant getUploadedAt() {
         return uploadedAt;
     }
@@ -231,6 +295,7 @@ public class GuestMedia {
         private Integer heightPx;
         private Integer durationSeconds;
         private ModerationStatus moderationStatus = ModerationStatus.APPROVED;
+        private MediaVisibility visibility = MediaVisibility.PUBLIC;
         private Instant uploadedAt = Instant.now();
         private Instant createdAt;
         private Instant updatedAt;
@@ -246,13 +311,14 @@ public class GuestMedia {
         public Builder heightPx(Integer heightPx) { this.heightPx = heightPx; return this; }
         public Builder durationSeconds(Integer durationSeconds) { this.durationSeconds = durationSeconds; return this; }
         public Builder moderationStatus(ModerationStatus moderationStatus) { this.moderationStatus = moderationStatus; return this; }
+        public Builder visibility(MediaVisibility visibility) { this.visibility = visibility; return this; }
         public Builder uploadedAt(Instant uploadedAt) { this.uploadedAt = uploadedAt; return this; }
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
 
         public GuestMedia build() {
             return new GuestMedia(id, guest, mediaType, storageKey, originalFilename, mimeType, sizeBytes,
-                    widthPx, heightPx, durationSeconds, moderationStatus, uploadedAt, createdAt, updatedAt);
+                    widthPx, heightPx, durationSeconds, moderationStatus, visibility, uploadedAt, createdAt, updatedAt);
         }
     }
 }

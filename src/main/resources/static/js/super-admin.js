@@ -14,6 +14,7 @@ initLanguageSwitcher(document.getElementById('lang-switcher'));
 document.getElementById('sidebar-username').textContent = getUsername() || '';
 document.getElementById('logout-btn').addEventListener('click', logout);
 document.getElementById('nav-back').addEventListener('click', () => { location.href = 'dashboard.html'; });
+document.getElementById('nav-media').addEventListener('click', () => { location.href = 'media-admin.html'; });
 
 const panels = document.querySelectorAll('section[data-panel]');
 function showPanel(name) {

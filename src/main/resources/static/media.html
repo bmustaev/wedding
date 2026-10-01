@@ -2,24 +2,26 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Фото и видео — Бобур и Дильноза</title>
 <link rel="icon" href="/favicon.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Marck+Script&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/invitation.css">
+<link rel="stylesheet" href="/css/media.css">
 </head>
 <body>
 
-<!-- Placeholder page: linked from invitation.html's "Загрузить фото/видео"
-     buttons. Real upload management belongs here eventually — for now it
-     just explains that uploading opens on the wedding day. Same slug-as-
-     credential model as invitation.html (see API.md section 7); reused
-     here only to resolve the guest's language and to link back. -->
+<!-- The guest's photos and videos, linked from invitation.html's photo/video
+     buttons (#photos / #videos) — same slug-as-credential model as the
+     invitation (API.md section 7). Before uploading, the guest picks who
+     sees the files — every guest in their hall, or only themselves (the
+     admins see both). Uploads are chunked and resumable (js/uploader.js); the server converts every file into a format any
+     browser can show, including iPhone HEIC photos and HEVC videos. -->
 <div id="loading" class="screen">
   <span class="spinner" aria-hidden="true"></span>
-  <p data-i18n="loading-text">Открываем ваше приглашение…</p>
+  <p data-mi18n="title">Фото и видео</p>
 </div>
 
 <div id="error-state" class="screen" hidden>
@@ -27,11 +29,85 @@
   <p data-i18n="error-body">Проверьте ссылку, которую вам прислали, или свяжитесь с молодожёнами.</p>
 </div>
 
-<div id="content" class="screen" hidden>
-  <h1 data-i18n="media-page-title">Фото и видео</h1>
-  <p data-i18n="media-page-message">Эта функция станет доступна в день свадьбы.</p>
-  <p data-i18n="media-page-explanation">Мы включим загрузку фото и видео прямо 2 октября, чтобы вы могли поделиться моментами сразу с торжества. Загляните сюда снова в этот день.</p>
-  <a class="btn" id="back-link" href="#" data-i18n="back-to-invitation-label">← Назад к приглашению</a>
+<main id="content" class="media-page" hidden>
+  <header class="media-header">
+    <a class="back-link" id="back-link" href="#" data-mi18n="back">← К приглашению</a>
+    <h1 class="script" data-mi18n="title">Фото и видео</h1>
+    <p class="media-lede" data-mi18n="lede"></p>
+  </header>
+
+  <nav class="media-tabs" role="tablist">
+    <button type="button" role="tab" id="tab-photos" data-tab="photos" aria-controls="panel-photos" data-mi18n="tab-photos">Мои фото</button>
+    <button type="button" role="tab" id="tab-videos" data-tab="videos" aria-controls="panel-videos" data-mi18n="tab-videos">Мои видео</button>
+    <button type="button" role="tab" id="tab-feed" data-tab="feed" aria-controls="panel-feed" data-mi18n="tab-feed">Лента гостей</button>
+  </nav>
+
+  <div id="page-error" class="upload-banner" role="alert" hidden></div>
+
+  <!-- ── My photos ── -->
+  <section class="media-panel" id="panel-photos" role="tabpanel" aria-labelledby="tab-photos" hidden>
+    <p class="panel-hint" id="photos-hint"></p>
+    <fieldset class="visibility-pick" id="photos-visibility">
+      <legend data-mi18n="vis-legend">Кто увидит</legend>
+      <div class="vis-options">
+        <label><input type="radio" name="photos-visibility" value="PUBLIC" checked><span data-mi18n="vis-public">Все гости</span></label>
+        <label><input type="radio" name="photos-visibility" value="PRIVATE"><span data-mi18n="vis-private">Только я</span></label>
+      </div>
+      <p class="vis-hint" id="photos-visibility-hint"></p>
+    </fieldset>
+    <div class="pick-row">
+      <label class="btn pick-btn" id="pick-photos-btn">
+        <input type="file" id="pick-photos" accept="image/*,.heic,.heif" multiple hidden>
+        <span data-mi18n="pick-photos">Выбрать фото</span>
+      </label>
+      <span class="quota" id="photos-quota"></span>
+    </div>
+    <div class="upload-list" id="photos-uploads"></div>
+    <div class="media-grid" id="photos-grid"></div>
+    <p class="empty-note" id="photos-empty" data-mi18n="empty-photos" hidden></p>
+  </section>
+
+  <!-- ── My videos ── -->
+  <section class="media-panel" id="panel-videos" role="tabpanel" aria-labelledby="tab-videos" hidden>
+    <p class="panel-hint" id="videos-hint"></p>
+    <fieldset class="visibility-pick" id="videos-visibility">
+      <legend data-mi18n="vis-legend">Кто увидит</legend>
+      <div class="vis-options">
+        <label><input type="radio" name="videos-visibility" value="PUBLIC"><span data-mi18n="vis-public">Все гости</span></label>
+        <label><input type="radio" name="videos-visibility" value="PRIVATE" checked><span data-mi18n="vis-private">Только я</span></label>
+      </div>
+      <p class="vis-hint" id="videos-visibility-hint"></p>
+    </fieldset>
+    <div class="pick-row">
+      <label class="btn pick-btn" id="pick-videos-btn">
+        <input type="file" id="pick-videos" accept="video/*,.mov,.mp4,.m4v" multiple hidden>
+        <span data-mi18n="pick-videos">Выбрать видео</span>
+      </label>
+      <span class="quota" id="videos-quota"></span>
+    </div>
+    <div class="upload-list" id="videos-uploads"></div>
+    <div class="media-grid" id="videos-grid"></div>
+    <p class="empty-note" id="videos-empty" data-mi18n="empty-videos" hidden></p>
+  </section>
+
+  <!-- ── Everyone's shared (PUBLIC) photos and videos, by table ── -->
+  <section class="media-panel" id="panel-feed" role="tabpanel" aria-labelledby="tab-feed" hidden>
+    <p class="panel-hint" data-mi18n="feed-hint"></p>
+    <div id="feed-groups"></div>
+    <p class="empty-note" id="feed-empty" data-mi18n="empty-feed" hidden></p>
+  </section>
+</main>
+
+<!-- Full-screen viewer for photos (with prev/next) and videos. -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" hidden>
+  <div class="lightbox-bar">
+    <span class="lightbox-caption" id="lightbox-caption"></span>
+    <a class="lightbox-btn" id="lightbox-download" href="#" download data-mi18n="download">Скачать</a>
+    <button type="button" class="lightbox-btn" id="lightbox-close" data-mi18n="close">Закрыть</button>
+  </div>
+  <div class="lightbox-stage" id="lightbox-stage"></div>
+  <button type="button" class="lightbox-nav prev" id="lightbox-prev" aria-label="Previous">&#8249;</button>
+  <button type="button" class="lightbox-nav next" id="lightbox-next" aria-label="Next">&#8250;</button>
 </div>
 
 <script type="module" src="/js/media.js"></script>

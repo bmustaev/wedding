@@ -51,9 +51,39 @@ app:
     secret: ${JWT_SECRET:REPLACE_WITH_A_LONG_RANDOM_SECRET_AT_LEAST_32_BYTES}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:480}
   media:
+    # Counts and video length are mirrored by the database
+    # (trg_guest_media_limit, ck_guest_media_video_duration) — change together.
     max-photos-per-guest: 15
     max-videos-per-guest: 4
+    max-video-seconds: 60
+    # Originals are kept as uploaded: a 60 s iPhone 4K/60 clip is ~400 MB.
+    max-photo-size: 40MB
+    max-video-size: 500MB
     storage-dir: ${MEDIA_STORAGE_DIR:./media-storage}
+    # Uploads arrive in chunks of this size (resumable — see MediaUploadService).
+    chunk-size: 8MB
+    upload-session-ttl: 24h
+    # New uploads are refused (507) once free disk space would drop below this.
+    min-free-disk: ${MEDIA_MIN_FREE_DISK:30GB}
+    # Browser-safe copies made from every upload (see MediaProcessor).
+    photo-display-px: 2560
+    thumb-px: 480
+    max-video-px: 1920        # long edge, i.e. 1080p
+    # Conversion workers — sized for an 8-core box: 2 x 3 ffmpeg threads for
+    # video leaves ~2 cores for the app and MariaDB.
+    photo-workers: 2
+    video-workers: 2
+    video-threads: 3
+    # Lifetime of the signed file links handed out in media responses.
+    url-ttl: 12h
+    # Fail startup when ffmpeg/ffprobe/libvips (with HEIC support) are missing.
+    require-tools: ${MEDIA_REQUIRE_TOOLS:true}
+    tools:
+      ffmpeg: ${FFMPEG_PATH:ffmpeg}
+      ffprobe: ${FFPROBE_PATH:ffprobe}
+      vips: ${VIPS_PATH:vips}
+      vipsheader: ${VIPSHEADER_PATH:vipsheader}
+      vipsthumbnail: ${VIPSTHUMBNAIL_PATH:vipsthumbnail}
   seating:
     default-table-capacity: 12
   invitation:

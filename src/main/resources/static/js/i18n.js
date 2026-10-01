@@ -69,11 +69,7 @@ const STRINGS = {
     'video-title': 'Видео',
     'upload-photo-btn': 'Загрузить фото',
     'upload-video-btn': 'Загрузить видео',
-
-    'media-page-title': 'Фото и видео',
-    'media-page-message': 'Эта функция станет доступна в день свадьбы.',
-    'media-page-explanation': 'Мы включим загрузку фото и видео прямо 2 октября, чтобы вы могли поделиться моментами сразу с торжества. Загляните сюда снова в этот день.',
-    'back-to-invitation-label': '← Назад к приглашению',
+    'media-feed-link': 'Смотреть фото гостей →',
 
     'footer-names': 'Бобур и Дильноза',
     'footer-meta': '2 октября 2026, Ташкент',
@@ -122,11 +118,7 @@ const STRINGS = {
     'video-title': 'Video',
     'upload-photo-btn': 'Foto yuklash',
     'upload-video-btn': 'Video yuklash',
-
-    'media-page-title': 'Foto va video',
-    'media-page-message': "Bu funksiya to'y kuni ishga tushadi.",
-    'media-page-explanation': "Foto va video yuklashni aynan 2 oktyabr kuni yoqamiz, shunda siz to'ydagi lahzalarni darhol ulasha olasiz. Shu kuni bu yerga yana qaytib keling.",
-    'back-to-invitation-label': "← Taklifnomaga qaytish",
+    'media-feed-link': "Mehmonlar fotolarini ko'rish →",
 
     'footer-names': 'Bobur va Dilnoza',
     'footer-meta': '2-oktabr 2026, Toshkent',
@@ -175,11 +167,7 @@ const STRINGS = {
     'video-title': 'Videos',
     'upload-photo-btn': 'Upload photo',
     'upload-video-btn': 'Upload video',
-
-    'media-page-title': 'Photos and videos',
-    'media-page-message': 'This feature will be available on the wedding day.',
-    'media-page-explanation': "We'll turn on photo and video uploads on October 2nd itself, so you can share moments straight from the celebration. Check back here that day.",
-    'back-to-invitation-label': '← Back to the invitation',
+    'media-feed-link': "See the guests' photos →",
 
     'footer-names': 'Bobur and Dilnoza',
     'footer-meta': 'October 2, 2026, Tashkent',
@@ -202,7 +190,6 @@ const HALL_STRINGS = {
       'fact-address-value': 'Самарканд, ресторан Богишамол',
       'fact-date-value': '10 октября 2026, суббота',
       'fact-time-value': '14:00',
-      'media-page-explanation': 'Мы включим загрузку фото и видео прямо 10 октября, чтобы вы могли поделиться моментами сразу с торжества. Загляните сюда снова в этот день.',
       'footer-meta': '10 октября 2026, Самарканд',
     },
     uz: {
@@ -215,7 +202,6 @@ const HALL_STRINGS = {
       'fact-address-value': "Samarqand, Bog'ishamol restorani",
       'fact-date-value': '10-oktabr 2026, shanba',
       'fact-time-value': '14:00',
-      'media-page-explanation': "Foto va video yuklashni aynan 10-oktabr kuni yoqamiz, shunda siz to'ydagi lahzalarni darhol ulasha olasiz. Shu kuni bu yerga yana qaytib keling.",
       'footer-meta': '10-oktabr 2026, Samarqand',
     },
     en: {
@@ -228,7 +214,6 @@ const HALL_STRINGS = {
       'fact-address-value': 'Samarkand, Bogishamol Restaurant',
       'fact-date-value': 'October 10, 2026, Saturday',
       'fact-time-value': '14:00',
-      'media-page-explanation': "We'll turn on photo and video uploads on October 10th itself, so you can share moments straight from the celebration. Check back here that day.",
       'footer-meta': 'October 10, 2026, Samarkand',
     },
   },

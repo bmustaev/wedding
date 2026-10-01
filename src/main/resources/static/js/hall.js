@@ -66,6 +66,7 @@ document.getElementById('sidebar-role').textContent =
 document.getElementById('sidebar-username').textContent = getUsername() || '';
 document.getElementById('logout-btn').addEventListener('click', logout);
 document.getElementById('nav-dashboard').addEventListener('click', () => { location.href = 'dashboard.html'; });
+document.getElementById('nav-media').addEventListener('click', () => { location.href = 'media-admin.html'; });
 
 if (isSuperAdmin()) {
   const link = document.getElementById('nav-super-admin');

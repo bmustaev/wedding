@@ -8,7 +8,6 @@
 // language as a best guess for the loading/invalid-link screens shown
 // before that's known.
 import * as api from './api.js';
-import { showError, escapeHtml } from './ui.js';
 import {
   normalizeLanguage, applyStaticTranslations, countdownWord,
   mapQueryFor, defaultGreetingFor, seatMembersText,
@@ -22,14 +21,14 @@ const slug = new URLSearchParams(location.search).get('slug')
 const loadingEl = document.getElementById('invite-loading');
 const errorStateEl = document.getElementById('invite-error-state');
 const contentEl = document.getElementById('invite-content');
-const uploadError = document.getElementById('upload-error');
 
-// Uploading isn't live yet (see media.html) — both buttons just link there,
-// carrying the slug along so that page knows which guest this is.
+// Uploading and viewing happen on media.html — each button opens its tab
+// there, carrying the slug along so that page knows which guest this is.
 if (slug) {
   const mediaHref = `/media.html?slug=${encodeURIComponent(slug)}`;
-  document.getElementById('photo-btn').href = mediaHref;
-  document.getElementById('video-btn').href = mediaHref;
+  document.getElementById('photo-btn').href = `${mediaHref}#photos`;
+  document.getElementById('video-btn').href = `${mediaHref}#videos`;
+  document.getElementById('feed-link').href = `${mediaHref}#feed`;
 }
 
 // -----------------------------------------------------------------------
@@ -62,7 +61,6 @@ async function init() {
     contentEl.hidden = false;
     // Started only now that the hall (and so the date) is known.
     startCountdown();
-    loadGallery();
   } catch {
     showInvalidLink();
   }
@@ -109,60 +107,12 @@ function renderInvitation(invitation) {
 
   updateRemaining('photos-remaining', 'photo', invitation.photosRemaining);
   updateRemaining('videos-remaining', 'video', invitation.videosRemaining);
-  toggleFileButton('photo-btn', invitation.photosRemaining);
-  toggleFileButton('video-btn', invitation.videosRemaining);
 }
 
 function updateRemaining(elementId, kind, remaining) {
   const el = document.getElementById(elementId);
   el.textContent = remainingMediaText(currentLang, kind, remaining);
   el.classList.toggle('at-cap', remaining <= 0);
-}
-
-function toggleFileButton(btnId, remaining) {
-  document.getElementById(btnId).classList.toggle('is-disabled', remaining <= 0);
-}
-
-// -----------------------------------------------------------------------
-// Uploaded photo/video gallery
-// -----------------------------------------------------------------------
-
-async function loadGallery() {
-  try {
-    const items = await api.listPublicMedia(slug);
-    renderUploadedMedia(items);
-  } catch (err) {
-    showError(uploadError, err);
-  }
-}
-
-function renderUploadedMedia(items) {
-  const photoGallery = document.getElementById('photo-gallery');
-  const videoGallery = document.getElementById('video-gallery');
-  photoGallery.innerHTML = '';
-  videoGallery.innerHTML = '';
-
-  for (const item of items) {
-    const tile = document.createElement('div');
-    tile.className = 'gallery-tile';
-    tile.innerHTML = `
-      <span class="file-label">${escapeHtml(item.originalFilename)}</span>
-      <button type="button" aria-label="Delete">&times;</button>`;
-    tile.querySelector('button').addEventListener('click', async () => {
-      try {
-        await api.deletePublicMedia(slug, item.id);
-        const invitation = await api.getPublicInvitation(slug);
-        updateRemaining('photos-remaining', 'photo', invitation.photosRemaining);
-        updateRemaining('videos-remaining', 'video', invitation.videosRemaining);
-        toggleFileButton('photo-btn', invitation.photosRemaining);
-        toggleFileButton('video-btn', invitation.videosRemaining);
-        loadGallery();
-      } catch (err) {
-        showError(uploadError, err);
-      }
-    });
-    (item.mediaType === 'PHOTO' ? photoGallery : videoGallery).appendChild(tile);
-  }
 }
 
 // -----------------------------------------------------------------------

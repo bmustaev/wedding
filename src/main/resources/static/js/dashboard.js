@@ -36,6 +36,7 @@ if (isSuperAdmin()) {
 }
 
 document.getElementById('nav-hall').addEventListener('click', () => { location.href = 'hall.html'; });
+document.getElementById('nav-media').addEventListener('click', () => { location.href = 'media-admin.html'; });
 
 const panels = document.querySelectorAll('section[data-panel]');
 const navButtons = document.querySelectorAll('.sidebar-nav button[data-target]');

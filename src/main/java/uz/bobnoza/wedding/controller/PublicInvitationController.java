@@ -2,20 +2,30 @@ package uz.bobnoza.wedding.controller;
 
 import uz.bobnoza.wedding.dto.guest.PublicInvitationResponse;
 import uz.bobnoza.wedding.dto.media.MediaResponse;
-import uz.bobnoza.wedding.entity.MediaType;
+import uz.bobnoza.wedding.dto.media.MediaTableGroup;
+import uz.bobnoza.wedding.dto.media.StartUploadRequest;
+import uz.bobnoza.wedding.dto.media.UpdateMediaVisibilityRequest;
+import uz.bobnoza.wedding.dto.media.UploadSessionResponse;
+import uz.bobnoza.wedding.entity.MediaVisibility;
 import uz.bobnoza.wedding.service.GuestMediaService;
 import uz.bobnoza.wedding.service.GuestService;
+import uz.bobnoza.wedding.service.MediaUploadService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,10 +41,13 @@ public class PublicInvitationController {
 
     private final GuestService guestService;
     private final GuestMediaService guestMediaService;
+    private final MediaUploadService mediaUploadService;
 
-    public PublicInvitationController(GuestService guestService, GuestMediaService guestMediaService) {
+    public PublicInvitationController(GuestService guestService, GuestMediaService guestMediaService,
+                                      MediaUploadService mediaUploadService) {
         this.guestService = guestService;
         this.guestMediaService = guestMediaService;
+        this.mediaUploadService = mediaUploadService;
     }
 
     @GetMapping("/{slug}")
@@ -42,24 +55,59 @@ public class PublicInvitationController {
         return guestService.getPublicInvitation(slug);
     }
 
+    /** The guest's own photos and videos, including ones still converting. */
     @GetMapping("/{slug}/media")
     public List<MediaResponse> listMedia(@PathVariable String slug) {
-        UUID guestId = guestService.resolveGuestIdBySlug(slug);
-        return guestMediaService.listMedia(guestId);
+        return guestMediaService.listOwnMedia(guestService.resolveGuestIdBySlug(slug));
     }
 
-    @PostMapping("/{slug}/media/photos")
-    public ResponseEntity<MediaResponse> uploadPhoto(@PathVariable String slug, @RequestParam("file") MultipartFile file) {
-        UUID guestId = guestService.resolveGuestIdBySlug(slug);
-        MediaResponse response = guestMediaService.uploadMedia(guestId, MediaType.PHOTO, file);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    /** Everyone's PUBLIC photos and videos in this guest's hall, grouped by table. Never PRIVATE ones. */
+    @GetMapping("/{slug}/feed")
+    public List<MediaTableGroup> feed(@PathVariable String slug) {
+        return guestMediaService.feed(guestService.resolveGuestIdBySlug(slug));
     }
 
-    @PostMapping("/{slug}/media/videos")
-    public ResponseEntity<MediaResponse> uploadVideo(@PathVariable String slug, @RequestParam("file") MultipartFile file) {
+    // --- chunked upload (see MediaUploadService) -------------------------
+
+    @PostMapping("/{slug}/media/uploads")
+    public ResponseEntity<UploadSessionResponse> startUpload(@PathVariable String slug,
+                                                             @Valid @RequestBody StartUploadRequest request) {
         UUID guestId = guestService.resolveGuestIdBySlug(slug);
-        MediaResponse response = guestMediaService.uploadMedia(guestId, MediaType.VIDEO, file);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(mediaUploadService.start(guestId, request));
+    }
+
+    @GetMapping("/{slug}/media/uploads/{uploadId}")
+    public UploadSessionResponse uploadStatus(@PathVariable String slug, @PathVariable UUID uploadId) {
+        return mediaUploadService.status(guestService.resolveGuestIdBySlug(slug), uploadId);
+    }
+
+    /** Raw bytes (application/octet-stream) of one chunk, starting at {@code offset}. */
+    @PutMapping("/{slug}/media/uploads/{uploadId}")
+    public UploadSessionResponse uploadChunk(@PathVariable String slug, @PathVariable UUID uploadId,
+                                             @RequestParam long offset, HttpServletRequest request)
+            throws IOException {
+        UUID guestId = guestService.resolveGuestIdBySlug(slug);
+        return mediaUploadService.appendChunk(guestId, uploadId, offset, request.getInputStream());
+    }
+
+    @PostMapping("/{slug}/media/uploads/{uploadId}/complete")
+    public ResponseEntity<MediaResponse> completeUpload(@PathVariable String slug, @PathVariable UUID uploadId) {
+        UUID guestId = guestService.resolveGuestIdBySlug(slug);
+        return ResponseEntity.status(HttpStatus.CREATED).body(mediaUploadService.complete(guestId, uploadId));
+    }
+
+    @DeleteMapping("/{slug}/media/uploads/{uploadId}")
+    public ResponseEntity<Void> cancelUpload(@PathVariable String slug, @PathVariable UUID uploadId) {
+        mediaUploadService.cancel(guestService.resolveGuestIdBySlug(slug), uploadId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** A guest sharing (PUBLIC) or hiding (PRIVATE) one of their own uploads — scoped like delete below. */
+    @PatchMapping("/{slug}/media/{mediaId}")
+    public MediaResponse updateMedia(@PathVariable String slug, @PathVariable UUID mediaId,
+                                     @Valid @RequestBody UpdateMediaVisibilityRequest request) {
+        UUID guestId = guestService.resolveGuestIdBySlug(slug);
+        return guestMediaService.setVisibility(guestId, mediaId, MediaVisibility.valueOf(request.visibility()));
     }
 
     /**

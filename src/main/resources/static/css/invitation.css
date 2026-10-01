@@ -274,18 +274,6 @@ footer .meta{color:var(--ink-soft);font-size:17px;margin-top:8px}
 .upload-remaining:empty + .file-btn{margin-top:10px}
 .file-btn{cursor:pointer}
 .file-btn.is-disabled{opacity:.5;pointer-events:none}
-.gallery-grid{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px;margin-top:20px;
-}
-.gallery-tile{
-  position:relative;aspect-ratio:1;border:1px solid var(--line);background:rgba(255,255,255,.55);
-  overflow:hidden;
-}
-.gallery-tile .file-label{
-  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  padding:4px;font-size:10px;line-height:1.3;text-align:center;color:var(--ink-soft);word-break:break-word;
-}
-.gallery-tile button{
-  position:absolute;top:2px;right:2px;width:18px;height:18px;border:none;border-radius:50%;
-  background:rgba(70,53,39,.75);color:#f6f1e8;font-size:12px;line-height:1;cursor:pointer;
-}
+.feed-link-row{margin-top:28px;font-size:18px}
+.feed-link-row a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--gold)}
+.feed-link-row a:hover{color:var(--terra)}

@@ -60,6 +60,13 @@ public class GlobalExceptionHandler {
                 .body(ApiErrorResponse.of(409, "Conflict", ex.getMessage()));
     }
 
+    /** Carries its own status; `error` is the machine-readable code (VIDEO_TOO_LONG, …) instead of the reason phrase. */
+    @ExceptionHandler(MediaRejectedException.class)
+    public ResponseEntity<ApiErrorResponse> handleMediaRejected(MediaRejectedException ex) {
+        return ResponseEntity.status(ex.getStatus())
+                .body(ApiErrorResponse.of(ex.getStatus().value(), ex.getCode(), ex.getMessage()));
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
         // Safety net: a database trigger or CHECK constraint rejected the write

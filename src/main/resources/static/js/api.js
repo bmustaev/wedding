@@ -60,7 +60,54 @@ function toQueryString(params) {
   return qs ? `?${qs}` : '';
 }
 
-const mediaPath = (mediaType) => (mediaType === 'PHOTO' ? 'photos' : 'videos');
+/**
+ * PUTs one upload chunk with XMLHttpRequest — fetch() can't report upload
+ * progress. Resolves/rejects exactly like request(): the parsed JSON, or
+ * the backend's error shape ({status: 0} for a dropped connection).
+ */
+function sendChunk(path, blob, { auth, onProgress, signal }) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', path);
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+    if (auth) {
+      const token = getToken();
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    }
+    xhr.upload.onprogress = (e) => onProgress?.(e.loaded);
+    xhr.onload = () => {
+      let payload = null;
+      try { payload = xhr.responseText ? JSON.parse(xhr.responseText) : null; } catch { payload = null; }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(payload);
+        return;
+      }
+      if (xhr.status === 401 && auth) {
+        clearSession();
+        location.href = 'login.html';
+      }
+      reject(payload || { status: xhr.status, error: xhr.statusText, message: 'Something went wrong.', details: [] });
+    };
+    const networkError = () => reject({ status: 0, error: 'Network Error', message: 'Could not reach the server. Check your connection and try again.', details: [] });
+    xhr.onerror = networkError;
+    xhr.ontimeout = networkError;
+    xhr.onabort = () => reject({ status: 0, error: 'Aborted', message: 'Cancelled', details: [] });
+    signal?.addEventListener('abort', () => xhr.abort(), { once: true });
+    xhr.send(blob);
+  });
+}
+
+/** The start → chunks → complete calls under `base` (see uploader.js), for either audience. */
+function uploadEndpoints(base, auth) {
+  return {
+    start: (body) => request(`${base}/uploads`, { method: 'POST', body, auth }),
+    status: (uploadId) => request(`${base}/uploads/${uploadId}`, { auth }),
+    putChunk: (uploadId, offset, blob, onProgress, signal) =>
+      sendChunk(`${base}/uploads/${uploadId}?offset=${offset}`, blob, { auth, onProgress, signal }),
+    complete: (uploadId) => request(`${base}/uploads/${uploadId}/complete`, { method: 'POST', auth }),
+    cancel: (uploadId) => request(`${base}/uploads/${uploadId}`, { method: 'DELETE', auth }),
+  };
+}
 
 // -----------------------------------------------------------------------
 // Auth
@@ -118,14 +165,21 @@ export function getGuestMediaAllowance(guestId) {
   return request(`/api/guests/${guestId}/media/allowance`);
 }
 
-export function uploadGuestMedia(guestId, mediaType, file) {
-  const form = new FormData();
-  form.append('file', file);
-  return request(`/api/guests/${guestId}/media/${mediaPath(mediaType)}`, { method: 'POST', body: form, isForm: true });
+export function adminUploadEndpoints(guestId) {
+  return uploadEndpoints(`/api/guests/${guestId}/media`, true);
 }
 
 export function deleteGuestMedia(guestId, mediaId) {
   return request(`/api/guests/${guestId}/media/${mediaId}`, { method: 'DELETE' });
+}
+
+/** Every photo or video of the guests this admin manages in one hall, grouped by table. */
+export function listAllMedia(type, hall) {
+  return request(`/api/media${toQueryString({ type, hall })}`);
+}
+
+export function getMediaStorage() {
+  return request('/api/media/storage');
 }
 
 // -----------------------------------------------------------------------
@@ -236,10 +290,16 @@ export function listPublicMedia(slug) {
   return request(`/api/public/invitations/${slug}/media`, { auth: false });
 }
 
-export function uploadPublicMedia(slug, mediaType, file) {
-  const form = new FormData();
-  form.append('file', file);
-  return request(`/api/public/invitations/${slug}/media/${mediaPath(mediaType)}`, { method: 'POST', body: form, isForm: true, auth: false });
+export function getFeed(slug) {
+  return request(`/api/public/invitations/${slug}/feed`, { auth: false });
+}
+
+export function setPublicMediaVisibility(slug, mediaId, visibility) {
+  return request(`/api/public/invitations/${slug}/media/${mediaId}`, { method: 'PATCH', body: { visibility }, auth: false });
+}
+
+export function publicUploadEndpoints(slug) {
+  return uploadEndpoints(`/api/public/invitations/${slug}/media`, false);
 }
 
 export function deletePublicMedia(slug, mediaId) {

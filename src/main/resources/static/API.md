@@ -2,7 +2,7 @@
 
 Base URL (local dev): `http://localhost:8080`
 
-All request/response bodies are JSON unless noted (file uploads use `multipart/form-data`). All timestamps are ISO-8601 UTC (e.g. `2026-09-02T14:30:00Z`). All IDs are UUIDs.
+All request/response bodies are JSON unless noted (guest media uploads send raw chunks as `application/octet-stream`; the super admin's gallery upload and the guest-list import use `multipart/form-data`). All timestamps are ISO-8601 UTC (e.g. `2026-09-02T14:30:00Z`). All IDs are UUIDs.
 
 ## Authentication
 
@@ -39,8 +39,22 @@ Every error follows the same shape:
 | 403 | Token valid but the account doesn't have permission (e.g. non-super-admin hitting `/api/super-admin/**`) |
 | 404 | Resource doesn't exist — **or belongs to a different admin**. An admin never gets a 403 for another admin's guest; they get a 404, so they can't even confirm the ID exists |
 | 409 | A business rule was violated — table doesn't have enough seats, or the guest already hit their photo/video cap |
-| 413 | Uploaded file exceeds the size limit (25MB default) |
+| 413 | Uploaded file exceeds the size limit |
+| 415 | A media upload isn't a photo/video format the server accepts |
+| 507 | The media disk is too full to accept new uploads |
 | 500 | Unexpected server error |
+
+### Media upload errors
+
+Rejected media uploads (section 3a) use a machine-readable code in `error` instead of the reason phrase, so the guest page can show its own message in the guest's language (`js/media-i18n.js`); `message` is the English fallback.
+
+| Status | `error` | When |
+|---|---|---|
+| 400 | `VIDEO_TOO_LONG` | Video over 60 seconds (`app.media.max-video-seconds`, ~0.5 s tolerance). Checked when the upload starts (from the duration the browser measured) and again on completion (ffprobe on the real file) |
+| 413 | `FILE_TOO_LARGE` | Over `app.media.max-photo-size` (40 MB) / `max-video-size` (500 MB), or a chunk larger than `chunkSize` |
+| 415 | `UNSUPPORTED_FORMAT` | Photo isn't JPEG/HEIC/PNG/WebP, or video isn't MOV/MP4 — decided by the file's content, never its name or `Content-Type` |
+| 507 | `STORAGE_FULL` | Free disk space would drop below `app.media.min-free-disk` (30 GB) |
+| 409 | `Conflict` | Photo/video cap reached (15 / 4, counting uploads in progress) |
 
 ---
 
@@ -281,24 +295,48 @@ Removes the guest's table assignment. Returns the updated `GuestResponse` (with 
 
 ## 3. Media — admin side
 
-For an admin managing a guest they own (e.g. removing inappropriate content). Guests upload their own media through the **public** endpoints in section 7 instead.
+For an admin managing a guest they own (e.g. removing inappropriate content, uploading on a guest's behalf). Guests upload their own media through the **public** endpoints in section 7 instead; `GET /api/media` below is the hall-wide view behind `media-admin.html`.
+
+Every upload is kept as the untouched **original** and converted server-side into copies every browser can show (iPhone HEIC photos and HEVC/HDR videos included): photos → metadata-stripped JPEG (≤ 2560 px) + thumbnail (≤ 480 px); videos → H.264 MP4 (≤ 1080p, SDR) + poster frame. Conversion runs in the background, so a new item starts as `PROCESSING`.
+
+### `MediaResponse`
+
+```json
+{
+  "id": "c3d4e5f6-a1b2-c3d4-e5f6-a1b2c3d4e5f6",
+  "mediaType": "VIDEO",
+  "visibility": "PRIVATE",
+  "status": "READY",
+  "processingPercent": null,
+  "queuePosition": null,
+  "processingError": null,
+  "originalFilename": "IMG_0042.MOV",
+  "sizeBytes": 187654321,
+  "durationSeconds": 42,
+  "widthPx": 1080,
+  "heightPx": 1920,
+  "uploadedAt": "2026-10-02T20:00:00Z",
+  "guestId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "guestName": "The Miller Family",
+  "tableLabel": "2D",
+  "own": false,
+  "fileUrl": "/api/public/media/c3d4e5f6-.../display?exp=1790942400&sig=…",
+  "thumbUrl": "/api/public/media/c3d4e5f6-.../thumb?exp=1790942400&sig=…",
+  "originalUrl": "/api/public/media/c3d4e5f6-.../original?exp=1790942400&sig=…"
+}
+```
+
+- `visibility`: `PUBLIC` (shown in the shared feed to every guest in the uploader's hall) or `PRIVATE` (only the uploader and the admins). The guest picks it when uploading and can switch it later (section 7). Admins see both kinds everywhere in this section.
+- `status`: `PROCESSING` → `READY`, or `FAILED` (`processingError` says why — admins only). `fileUrl`/`thumbUrl` are `null` until `READY`; for a video, `thumbUrl` is the poster frame.
+- While `PROCESSING`, the uploader and admins get `processingPercent` (video being converted now) or `queuePosition` (waiting; `0` = next).
+- The `*Url`s are signed, expiring links — see section 7a. `originalUrl`, `guestId` and `processingError` are admin-only.
+- `widthPx`/`heightPx` are as displayed (portrait phone video is taller than wide).
 
 ### `GET /api/guests/{guestId}/media`
 
 **Auth:** admin (must own the guest)
 
-**Response `200`:**
-```json
-[
-  {
-    "id": "c3d4e5f6-a1b2-c3d4-e5f6-a1b2c3d4e5f6",
-    "mediaType": "PHOTO",
-    "storageKey": "photos/3fa85f64.../a1b2c3d4.jpg",
-    "originalFilename": "beach.jpg",
-    "uploadedAt": "2026-09-01T20:00:00Z"
-  }
-]
-```
+**Response `200`:** `MediaResponse[]` — all of this guest's photos and videos, any status.
 
 ### `GET /api/guests/{guestId}/media/allowance`
 
@@ -314,36 +352,75 @@ For an admin managing a guest they own (e.g. removing inappropriate content). Gu
 }
 ```
 
-### `POST /api/guests/{guestId}/media/photos` and `.../videos`
+### Chunked uploads: `POST /api/guests/{guestId}/media/uploads` …
 
-**Auth:** admin (must own the guest)
-**Content-Type:** `multipart/form-data`, field name `file`
-
-**curl:**
-```bash
-curl -X POST http://localhost:8080/api/guests/$GUEST_ID/media/photos \
-  -H "Authorization: Bearer $TOKEN" \
-  -F "file=@beach.jpg"
-```
-
-**Response `201`:** a `MediaResponse` (shape above).
-
-**Response `409`** once the guest is at the cap (15 photos / 4 videos):
-```json
-{
-  "timestamp": "2026-09-02T14:30:00Z",
-  "status": 409,
-  "error": "Conflict",
-  "message": "This guest already has the maximum of 15 photo uploads",
-  "details": []
-}
-```
+**Auth:** admin (must own the guest). Same three-step flow as the guest side — see **section 3a**, with `/api/guests/{guestId}/media` in place of `/api/public/invitations/{slug}/media`.
 
 ### `DELETE /api/guests/{guestId}/media/{mediaId}`
 
-**Auth:** admin (must own the guest)
+**Auth:** admin (must own the guest). Deletes the original and its converted copies.
 
 **Response:** `204 No Content`
+
+### `GET /api/media?type=PHOTO|VIDEO&hall=TASHKENT|SAMARKAND`
+
+**Auth:** admin. Every photo (default) or video of the guests the caller manages in one hall — the same ownership rule as the guest list (own guests; a hall admin's whole side in their hall; super admin everyone) — grouped by table. `hall` works as in `GET /api/seating/hall`: absent = the caller's default hall, a hall the caller can't access = `404`.
+
+**Response `200`:**
+```json
+[
+  { "tableLabel": "Head Table", "tableSide": "HEAD", "tableNumber": null, "items": [ /* MediaResponse */ ] },
+  { "tableLabel": "1D", "tableSide": "BRIDE", "tableNumber": 1, "items": [ … ] },
+  { "tableLabel": "1B", "tableSide": "GROOM", "tableNumber": 1, "items": [ … ] },
+  { "tableLabel": null, "tableSide": null, "tableNumber": null, "items": [ … ] }
+]
+```
+Groups come head table first, then bride tables, then groom tables, by number; guests without a table come last (`tableLabel: null`). Within a table: by guest name, then upload time. Tables with nothing uploaded are left out.
+
+### `GET /api/media/storage`
+
+**Auth:** admin. Free space on the media disk.
+
+```json
+{ "freeBytes": 412316860416, "totalBytes": 429496729600, "minFreeBytes": 32212254720 }
+```
+
+---
+
+## 3a. Chunked uploads (guest and admin)
+
+Uploads are **resumable**: a 60-second 4K iPhone clip is ~400 MB, sent over venue Wi-Fi. The browser sends the file in chunks (8 MB), each at an explicit offset; after a dropped connection it asks how much arrived and continues from there. `js/uploader.js` implements the client side.
+
+Paths below are for a guest (`/api/public/invitations/{slug}/media`); the admin equivalents live under `/api/guests/{guestId}/media`.
+
+**1. Start** — `POST …/uploads`
+
+```json
+{ "mediaType": "VIDEO", "filename": "IMG_0042.MOV", "sizeBytes": 187654321, "durationSeconds": 42.4, "visibility": "PRIVATE" }
+```
+`visibility` (optional, `PUBLIC` | `PRIVATE`) is who besides the admins sees the finished file — absent means photos `PUBLIC`, videos `PRIVATE`. `durationSeconds` (videos, optional) is what the browser measured — over the limit fails here, before any bytes are sent. Also checked here: file size, the guest's cap (counting other uploads in progress), and free disk space.
+
+**Response `201`:**
+```json
+{ "uploadId": "9b2c…", "mediaType": "VIDEO", "sizeBytes": 187654321, "receivedBytes": 0, "chunkSize": 8388608 }
+```
+
+**2. Send chunks** — `PUT …/uploads/{uploadId}?offset={receivedBytes}`, body = the raw bytes (`Content-Type: application/octet-stream`, at most `chunkSize`). Returns the same session object with the new `receivedBytes`. `offset` must equal the server's `receivedBytes`, otherwise `409` — re-read the status and continue from there.
+
+`GET …/uploads/{uploadId}` returns the session's current state (used to resume).
+
+**3. Complete** — `POST …/uploads/{uploadId}/complete`. The server checks the real file (format by content; a video's true length via ffprobe), stores it and queues its conversion. **Response `201`:** a `MediaResponse` with `status: "PROCESSING"`. A rejection here (see "Media upload errors") ends the session.
+
+`DELETE …/uploads/{uploadId}` cancels. Sessions untouched for 24 h (`app.media.upload-session-ttl`) are cleaned up automatically.
+
+```bash
+SLUG=a1b2c3d4...; B=http://localhost:8080/api/public/invitations/$SLUG/media
+SIZE=$(stat -f %z clip.mov)   # Linux: stat -c %s
+ID=$(curl -s -X POST $B/uploads -H 'Content-Type: application/json' \
+  -d "{\"mediaType\":\"VIDEO\",\"filename\":\"clip.mov\",\"sizeBytes\":$SIZE}" | jq -r .uploadId)
+curl -s -X PUT "$B/uploads/$ID?offset=0" -H 'Content-Type: application/octet-stream' --data-binary @clip.mov  # files ≤ 8 MB; larger: one PUT per chunk
+curl -s -X POST $B/uploads/$ID/complete
+```
 
 ---
 
@@ -698,24 +775,43 @@ First call marks `first_viewed_at` on the guest record server-side (not returned
 
 ### `GET /api/public/invitations/{slug}/media`
 
-Returns the same `MediaResponse[]` shape as the admin-side media list, scoped to this guest.
+**Response `200`:** `MediaResponse[]` — this guest's own photos and videos, any status (with conversion progress while `PROCESSING`). No `guestName`/`tableLabel`, `originalUrl`, `guestId` or `processingError`.
 
-### `POST /api/public/invitations/{slug}/media/photos` and `.../videos`
+### `GET /api/public/invitations/{slug}/feed`
 
-**Content-Type:** `multipart/form-data`, field name `file`
+Every guest's **READY `PUBLIC` photos and videos** in this guest's own hall (a Samarkand guest sees Samarkand, a Tashkent guest Tashkent), grouped by table exactly like `GET /api/media` (section 3). **Never `PRIVATE` items** — not even this guest's own (those are in `GET …/media` above); only their uploader and the admins see them. Other guests' items carry `guestName` but not `originalFilename`; `own: true` marks this guest's own items.
 
-```bash
-curl -X POST http://localhost:8080/api/public/invitations/a1b2c3d4.../media/photos \
-  -F "file=@my-photo.jpg"
+### `PATCH /api/public/invitations/{slug}/media/{mediaId}`
+
+Lets a guest share or hide one of their own uploads. Scoped to that slug's guest like `DELETE` below — someone else's `mediaId` is a `404`.
+
+```json
+{ "visibility": "PUBLIC" }
 ```
 
-**Response `201`:** a `MediaResponse`. **Response `409`** once the guest hits their cap — same shape as the admin-side upload.
+**Response `200`:** the updated `MediaResponse`. `400` if `visibility` isn't `PUBLIC` or `PRIVATE`.
+
+### Uploads — `POST /api/public/invitations/{slug}/media/uploads` …
+
+Chunked and resumable — see **section 3a**.
 
 ### `DELETE /api/public/invitations/{slug}/media/{mediaId}`
 
 Lets a guest remove their own upload (e.g. wrong photo). Scoped to that slug's guest — a guest can't delete another guest's media even if they guess a `mediaId`, because the lookup is always `(mediaId, guestId-resolved-from-slug)`, never a bare `mediaId`.
 
 **Response:** `204 No Content`
+
+---
+
+## 7a. Media files (signed links — no login)
+
+### `GET /api/public/media/{mediaId}/{variant}?exp={epochSeconds}&sig={signature}`
+
+Serves a guest media file. `variant`: `display` (converted JPEG / MP4), `thumb` (thumbnail / poster JPEG) or `original` (the untouched upload, as an attachment with its original file name). Never build these URLs yourself — use `fileUrl` / `thumbUrl` / `originalUrl` from a `MediaResponse`.
+
+- **The signature is the permission.** Who may see which file is decided when the list containing the link is built (above); the link is an HMAC over media id + variant + expiry, so a `display` link can't be edited into an `original` one. `<img>`/`<video>` can use it directly — no Bearer token needed.
+- Links are valid for 12–18 h (`app.media.url-ttl`) and stay identical for hours, so browsers cache the files across page refreshes. **`403`** once expired or tampered with — reload the list for fresh links. **`404`** for a variant that doesn't exist yet (still `PROCESSING`).
+- Supports `Range` requests (`206`), so videos seek and large downloads resume.
 
 ---
 
@@ -761,9 +857,14 @@ Streams the photo's bytes with its real `Content-Type` (e.g. `image/jpeg`) — t
 | DELETE | `/api/guests/{id}/table` | admin |
 | GET | `/api/guests/{id}/media` | admin |
 | GET | `/api/guests/{id}/media/allowance` | admin |
-| POST | `/api/guests/{id}/media/photos` | admin |
-| POST | `/api/guests/{id}/media/videos` | admin |
+| POST | `/api/guests/{id}/media/uploads` | admin |
+| GET | `/api/guests/{id}/media/uploads/{uploadId}` | admin |
+| PUT | `/api/guests/{id}/media/uploads/{uploadId}?offset=` | admin |
+| POST | `/api/guests/{id}/media/uploads/{uploadId}/complete` | admin |
+| DELETE | `/api/guests/{id}/media/uploads/{uploadId}` | admin |
 | DELETE | `/api/guests/{id}/media/{mediaId}` | admin |
+| GET | `/api/media` | admin |
+| GET | `/api/media/storage` | admin |
 | GET | `/api/seating/occupancy` | admin |
 | GET | `/api/seating/chart` | admin |
 | GET | `/api/seating/hall` | admin |
@@ -784,8 +885,14 @@ Streams the photo's bytes with its real `Content-Type` (e.g. `image/jpeg`) — t
 | DELETE | `/api/super-admin/gallery-images/{id}` | super admin |
 | GET | `/api/public/invitations/{slug}` | none |
 | GET | `/api/public/invitations/{slug}/media` | none |
-| POST | `/api/public/invitations/{slug}/media/photos` | none |
-| POST | `/api/public/invitations/{slug}/media/videos` | none |
+| GET | `/api/public/invitations/{slug}/feed` | none |
+| POST | `/api/public/invitations/{slug}/media/uploads` | none |
+| GET | `/api/public/invitations/{slug}/media/uploads/{uploadId}` | none |
+| PUT | `/api/public/invitations/{slug}/media/uploads/{uploadId}?offset=` | none |
+| POST | `/api/public/invitations/{slug}/media/uploads/{uploadId}/complete` | none |
+| DELETE | `/api/public/invitations/{slug}/media/uploads/{uploadId}` | none |
+| PATCH | `/api/public/invitations/{slug}/media/{mediaId}` | none |
 | DELETE | `/api/public/invitations/{slug}/media/{mediaId}` | none |
+| GET | `/api/public/media/{mediaId}/{variant}` | signed link |
 | GET | `/api/public/gallery-images` | none |
 | GET | `/api/public/gallery-images/{id}/file` | none |

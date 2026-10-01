@@ -543,6 +543,24 @@ tbody tr:hover { background: var(--line-soft); }
   cursor: pointer;
 }
 
+.media-tile img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.media-tile a {
+  position: absolute;
+  inset: 0;
+}
+.media-tile.is-uploading {
+  font-variant-numeric: tabular-nums;
+}
+.media-tile.is-error {
+  color: var(--danger);
+}
+
 /* ---------------------------------------------------------------------
    Invitation gallery (super-admin panel)
    --------------------------------------------------------------------- */

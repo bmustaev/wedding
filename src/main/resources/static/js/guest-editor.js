@@ -6,6 +6,7 @@ import * as api from './api.js';
 import { getSide, isSuperAdmin, getAccessibleHalls } from './auth.js';
 import { showError, clearBanner, openModal, closeModal, escapeHtml, copyToClipboard } from './ui.js';
 import { t, getAdminLanguage } from './admin-i18n.js';
+import { createUploader } from './uploader.js';
 
 const guestModalBackdrop = document.getElementById('guest-modal-backdrop');
 const guestModalTitle = document.getElementById('guest-modal-title');
@@ -258,14 +259,63 @@ guestDeleteBtn.addEventListener('click', async () => {
 });
 
 // --- guest media (within the modal) ------------------------------------
+// Uploads go through the same chunked, resumable uploader as the guest
+// page (uploader.js); the hall-wide view of everything is media-admin.html.
+
+let editorUploader = null;
+let pendingUploads = [];
+
+function uploaderFor(guestId) {
+  if (editorUploader?.guestId !== guestId) {
+    editorUploader = createUploader({
+      endpoints: api.adminUploadEndpoints(guestId),
+      scope: `admin:${guestId}`,
+      concurrency: 1,
+      onChange: (tasks) => {
+        pendingUploads = tasks;
+        renderPendingUploads();
+      },
+      onComplete: () => {
+        if (editingGuestId === guestId) loadGuestMedia(guestId);
+      },
+    });
+    editorUploader.guestId = guestId;
+    pendingUploads = [];
+  }
+  return editorUploader;
+}
+
+function renderPendingUploads() {
+  guestMediaGrid.querySelectorAll('.media-tile.is-uploading, .media-tile.is-error').forEach((el) => el.remove());
+  for (const task of pendingUploads) {
+    const tile = document.createElement('div');
+    tile.className = `media-tile ${task.state === 'error' ? 'is-error' : 'is-uploading'}`;
+    if (task.state === 'error') {
+      const message = task.error?.error === 'VIDEO_TOO_LONG' ? t('media-video-too-long') : (task.error?.message || '');
+      tile.textContent = t('media-upload-failed', { message });
+      tile.title = task.file.name;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.setAttribute('aria-label', t('delete-aria'));
+      remove.innerHTML = '&times;';
+      remove.addEventListener('click', () => editorUploader.remove(task));
+      tile.appendChild(remove);
+    } else {
+      tile.textContent = task.state === 'uploading'
+        ? t('media-upload-progress', { percent: Math.round((task.loaded * 100) / task.total) })
+        : t(task.state === 'finishing' ? 'media-upload-finishing' : 'media-upload-queued');
+    }
+    guestMediaGrid.prepend(tile);
+  }
+}
 
 async function loadGuestMedia(guestId) {
-  guestMediaGrid.innerHTML = '';
   try {
     const [items, allowance] = await Promise.all([
       api.listGuestMedia(guestId),
       api.getGuestMediaAllowance(guestId),
     ]);
+    guestMediaGrid.innerHTML = '';
     guestMediaAllowance.textContent = t('media-allowance-template', {
       photosUsed: allowance.photosUsed,
       photosTotal: allowance.photosUsed + allowance.photosRemaining,
@@ -273,15 +323,26 @@ async function loadGuestMedia(guestId) {
       videosTotal: allowance.videosUsed + allowance.videosRemaining,
     });
 
-    if (items.length === 0) {
+    if (items.length === 0 && pendingUploads.length === 0) {
       guestMediaGrid.innerHTML = `<p class="field-hint">${t('no-media')}</p>`;
       return;
     }
     for (const item of items) {
       const tile = document.createElement('div');
       tile.className = 'media-tile';
-      tile.innerHTML = `${escapeHtml(item.originalFilename)}<button type="button" aria-label="${t('delete-aria')}">&times;</button>`;
-      tile.querySelector('button').addEventListener('click', async () => {
+      if (item.status === 'READY') {
+        tile.innerHTML = `<a href="${escapeHtml(item.fileUrl)}" target="_blank" rel="noopener" title="${escapeHtml(item.originalFilename)}"><img src="${escapeHtml(item.thumbUrl)}" alt="" loading="lazy"></a>`;
+      } else {
+        tile.textContent = item.status === 'PROCESSING'
+          ? t('media-processing', { percent: item.processingPercent ?? 0 })
+          : t('media-failed');
+        tile.title = item.originalFilename;
+      }
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.setAttribute('aria-label', t('delete-aria'));
+      del.innerHTML = '&times;';
+      del.addEventListener('click', async () => {
         try {
           await api.deleteGuestMedia(guestId, item.id);
           loadGuestMedia(guestId);
@@ -289,33 +350,23 @@ async function loadGuestMedia(guestId) {
           showError(guestModalError, err);
         }
       });
+      tile.appendChild(del);
       guestMediaGrid.appendChild(tile);
+    }
+    if (editorUploader?.guestId === guestId) renderPendingUploads();
+    if (items.some((item) => item.status === 'PROCESSING')) {
+      setTimeout(() => { if (editingGuestId === guestId) loadGuestMedia(guestId); }, 3000);
     }
   } catch (err) {
     showError(guestModalError, err);
   }
 }
 
-document.getElementById('guest-upload-photo').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file || !editingGuestId) return;
-  try {
-    await api.uploadGuestMedia(editingGuestId, 'PHOTO', file);
-    loadGuestMedia(editingGuestId);
-  } catch (err) {
-    showError(guestModalError, err);
-  }
-  e.target.value = '';
-});
-
-document.getElementById('guest-upload-video').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file || !editingGuestId) return;
-  try {
-    await api.uploadGuestMedia(editingGuestId, 'VIDEO', file);
-    loadGuestMedia(editingGuestId);
-  } catch (err) {
-    showError(guestModalError, err);
-  }
-  e.target.value = '';
-});
+for (const [inputId, mediaType] of [['guest-upload-photo', 'PHOTO'], ['guest-upload-video', 'VIDEO']]) {
+  document.getElementById(inputId).addEventListener('change', (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!files.length || !editingGuestId) return;
+    uploaderFor(editingGuestId).add(files, mediaType);
+  });
+}

@@ -9,9 +9,10 @@ Plain HTML/CSS/JS, no framework, no build step. Talks to the Spring Boot backend
 | `login.html` | Admin / super admin | Sign in |
 | `dashboard.html` | Admin | Manage own guests, seating, bulk import |
 | `hall.html` | Admin | Drag-and-drop seating map, one hall at a time (Tashkent / Samarkand switcher for the groom side and super admin) |
+| `media-admin.html` | Admin | Every photo/video of the admin's guests in one hall, grouped by table: view, download the original, delete |
 | `super-admin.html` | Super admin only | Manage admin accounts, view (read-only) any admin's guests, manage the invitation page's "about us" gallery |
-| `invitation.html` | Guest, no login | View invitation. Photo/video upload isn't live yet — its buttons link to `media.html` |
-| `media.html` | Guest, no login | Placeholder for the future photo/video upload page; today it just explains uploads open on the wedding day |
+| `invitation.html` | Guest, no login | View invitation. Its photo/video buttons open `media.html` (`#photos` / `#videos`), plus a link to everyone's photos (`#feed`) |
+| `media.html` | Guest, no login | Upload and manage own photos (max 15) and videos (max 4, ≤ 60 s each); browse every guest's photos in the same hall, by table |
 
 ## Running it locally
 
@@ -51,6 +52,18 @@ Guests are invited to one of two celebrations — each guest has a `hall` (`TASH
 A **hall admin** (created from the super admin page with "Hall access" set, e.g. `sam_hall` — groom side, Samarkand only) gets just that one hall, so none of those hall controls appear for them either, and their dashboard and hall map list every guest their side has in that hall, not only the ones they added (API.md sections 1–2). The login response's `hall` is saved in the session for `getAccessibleHalls()`.
 
 `invitation.html` is one page for both: `js/invitation.js` reads the guest's `hall` and picks the event date (`EVENT_DATES`) and map query, and `js/i18n.js` overlays `HALL_STRINGS.SAMARKAND` on top of the Tashkent copy for venue/date/time text. The static `<title>`/Open Graph tags in `invitation.html` describe Tashkent; messenger crawlers don't run JS, so for a Samarkand guest `InvitationRedirectController` serves `/i/{slug}` with those head tags rewritten to Samarkand's date and venue (its `SAMARKAND_HEAD` must match the head text — startup fails if it drifts). The `invitation.html?slug=` form always previews as Tashkent.
+
+## Photos and videos
+
+`media.html` has three tabs: **My photos**, **My videos** and **Guests' feed**. A guest manages only their own uploads. Above each picker the guest chooses **who sees the next files**: "All guests" (`PUBLIC` — they appear in the feed of every guest in the same hall, grouped by table — head, bride, groom, then "no table") or "Only me" (`PRIVATE` — only the guest and the admins). Photos start on "All guests", videos on "Only me". Each own tile has a lock/people button to switch it later. Admins always see both kinds; `media-admin.html` tags private ones. The rules live server-side (`GuestMediaService`); the page just renders what the API returns.
+
+- **Uploads** go through `js/uploader.js`: chunked (8 MB) and resumable, 2 files at a time, with a progress bar per file (percent, MB, time left) and an overall one. A dropped connection retries the chunk automatically; if the page is reloaded, picking the same file again resumes it (the session id is kept in `localStorage`). Leaving mid-upload asks for confirmation.
+- **60-second limit:** `js/video-duration.js` reads a video's length from its MP4/MOV header before uploading (works for iPhone HEVC `.mov` files even in browsers that can't play them), so a longer clip is refused immediately. The server re-measures the real file regardless.
+- **iPhone formats:** guests can upload HEIC photos and HEVC/HDR `.mov` videos as they come off the phone. The server keeps the original and converts each upload into a JPEG / H.264 MP4 every browser can show (stripping location metadata), so after upload a tile shows "processing" (with % for videos) until it's ready. The page polls every 2 s while anything is processing.
+- **Files** are loaded through signed, expiring links from the API (`fileUrl`, `thumbUrl`) — never built from ids. They stay identical for hours, so re-rendering reuses cached images.
+- Strings for ru / uz / en are in `js/media-i18n.js` (the guest's `language` decides).
+
+Admins see the same media per hall on `media-admin.html` (with "download original"), and per guest in the guest editor's "Media" section, which uploads through the same `uploader.js`.
 
 ## Auth
 

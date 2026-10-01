@@ -535,3 +535,107 @@ BEGIN
     CALL check_table_hall(NEW.table_id, NEW.hall);
     CALL check_table_capacity(NEW.table_id, NEW.id, NEW.party_size);
 END$$
+-- =====================================================================
+-- MEDIA PROCESSING — every guest upload is converted server-side into
+-- copies every browser can show (see MediaProcessingQueue): photos
+-- (including iPhone HEIC) into a metadata-stripped JPEG display copy and
+-- a thumbnail, videos (including iPhone HEVC / HDR .mov) into an H.264
+-- MP4 and a poster frame. storage_key stays the untouched original.
+-- Existing rows default to 'processing' so the startup recovery in
+-- MediaProcessingQueue converts anything uploaded before this existed.
+-- =====================================================================
+
+ALTER TABLE guest_media ADD COLUMN IF NOT EXISTS display_key VARCHAR(500) NULL$$
+
+ALTER TABLE guest_media ADD COLUMN IF NOT EXISTS thumb_key VARCHAR(500) NULL$$
+
+ALTER TABLE guest_media
+    ADD COLUMN IF NOT EXISTS processing_status VARCHAR(12) NOT NULL DEFAULT 'processing'
+        CHECK (processing_status IN ('processing', 'ready', 'failed'))$$
+
+ALTER TABLE guest_media ADD COLUMN IF NOT EXISTS processing_error VARCHAR(500) NULL$$
+
+-- The shared photo feed reads every ready photo in a hall.
+ALTER TABLE guest_media ADD INDEX IF NOT EXISTS idx_guest_media_type_status (media_type, processing_status)$$
+
+-- Videos are at most 60 seconds (app.media.max-video-seconds) — last line
+-- of defense behind GuestMediaService/MediaUploadService, the same way
+-- trg_guest_media_limit backs the per-guest counts. NULL is allowed only
+-- for rows from before durations were measured. Guarded the same way as
+-- ck_seating_tables_samarkand_groom above.
+DROP PROCEDURE IF EXISTS add_video_duration_check$$
+
+CREATE PROCEDURE add_video_duration_check()
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+                   WHERE CONSTRAINT_SCHEMA = DATABASE()
+                     AND TABLE_NAME = 'guest_media'
+                     AND CONSTRAINT_NAME = 'ck_guest_media_video_duration') THEN
+        ALTER TABLE guest_media
+            ADD CONSTRAINT ck_guest_media_video_duration
+                CHECK (media_type <> 'video' OR duration_seconds IS NULL OR duration_seconds <= 60);
+    END IF;
+END$$
+
+CALL add_video_duration_check()$$
+DROP PROCEDURE IF EXISTS add_video_duration_check$$
+
+-- ---------------------------------------------------------------------
+-- MEDIA UPLOADS — resumable, chunked upload sessions (MediaUploadService).
+-- The bytes received so far live in a scratch file next to the media
+-- storage; a session row disappears once the upload completes (it becomes
+-- a guest_media row), is cancelled, or goes stale.
+-- ---------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS media_uploads (
+    id                  CHAR(36) NOT NULL PRIMARY KEY,
+    guest_id            CHAR(36) NOT NULL,
+    media_type          VARCHAR(10) NOT NULL,
+    original_filename   VARCHAR(255) NOT NULL,
+    size_bytes          BIGINT NOT NULL,
+    received_bytes      BIGINT NOT NULL DEFAULT 0,
+    created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT ck_media_uploads_type CHECK (media_type IN ('photo', 'video')),
+    CONSTRAINT ck_media_uploads_size CHECK (size_bytes > 0),
+    CONSTRAINT ck_media_uploads_received CHECK (received_bytes >= 0 AND received_bytes <= size_bytes),
+    CONSTRAINT fk_media_uploads_guest FOREIGN KEY (guest_id) REFERENCES guests (id) ON DELETE CASCADE,
+
+    INDEX idx_media_uploads_guest_type (guest_id, media_type),
+    INDEX idx_media_uploads_updated_at (updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci$$
+
+
+-- =====================================================================
+-- MEDIA VISIBILITY — the guest picks, per upload, whether a photo or
+-- video is shared with every guest in their hall ('public', the feed) or
+-- kept to themselves ('private'). Admins see both either way (see
+-- GuestMediaService). Before this existed photos were always shared and
+-- videos always private, so existing rows are backfilled that way — once,
+-- when the column is added, so a re-run never overrides a guest's choice.
+-- =====================================================================
+
+DROP PROCEDURE IF EXISTS add_media_visibility$$
+
+CREATE PROCEDURE add_media_visibility()
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS
+                   WHERE TABLE_SCHEMA = DATABASE()
+                     AND TABLE_NAME = 'guest_media'
+                     AND COLUMN_NAME = 'visibility') THEN
+        ALTER TABLE guest_media
+            ADD COLUMN visibility VARCHAR(10) NOT NULL DEFAULT 'public'
+                CHECK (visibility IN ('public', 'private'));
+        UPDATE guest_media SET visibility = 'private' WHERE media_type = 'video';
+    END IF;
+END$$
+
+CALL add_media_visibility()$$
+DROP PROCEDURE IF EXISTS add_media_visibility$$
+
+-- Chosen when the upload starts, carried over to guest_media on completion.
+-- A session from before this existed defaults to the safe side.
+ALTER TABLE media_uploads
+    ADD COLUMN IF NOT EXISTS visibility VARCHAR(10) NOT NULL DEFAULT 'private'
+        CHECK (visibility IN ('public', 'private'))$$
