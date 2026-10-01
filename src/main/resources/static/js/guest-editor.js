@@ -165,7 +165,7 @@ export async function openGuestEditor(guestId, presetTableId, presetHall) {
   // hall (groom side, super admin) — the bride side only ever has Tashkent.
   const accessibleHalls = getAccessibleHalls();
   guestHallField.hidden = accessibleHalls.length < 2;
-  guestHallSelect.value = accessibleHalls.includes(presetHall) ? presetHall : 'TASHKENT';
+  guestHallSelect.value = accessibleHalls.includes(presetHall) ? presetHall : accessibleHalls[0];
 
   editingGuestTableId = null;
   await populateTableSelect(editingGuestId ? null : (presetTableId || null));

@@ -16,6 +16,7 @@ import uz.bobnoza.wedding.repository.AdminRepository;
 import uz.bobnoza.wedding.repository.GuestRepository;
 import uz.bobnoza.wedding.security.AdminPrincipal;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +29,8 @@ import java.util.UUID;
  * Guest CRUD, always scoped by ownership: every read/write that isn't the
  * public-invitation lookup takes an {@link AdminPrincipal} and filters by
  * its admin_id. That ownership filter is what keeps one admin's guest list
- * invisible to another (see GuestRepository.findByIdAndAdminIdAndDeletedFalse).
+ * invisible to another (see AdminPrincipal#canManageGuest). The one widening:
+ * a hall admin also manages every guest their side has in their hall.
  */
 @Service
 public class GuestService {
@@ -50,9 +52,16 @@ public class GuestService {
 
     @Transactional(readOnly = true)
     public PageResponse<GuestResponse> listMyGuests(AdminPrincipal caller, Pageable pageable) {
-        return PageResponse.from(
-                guestRepository.findAllByAdminIdAndDeletedFalseOrderByDisplayNameAsc(caller.getAdminId(), pageable)
-                        .map(this::toResponse));
+        return PageResponse.from(findManagedGuests(caller, pageable).map(this::toResponse));
+    }
+
+    /** The caller's guest list: their own guests, plus — for a hall admin — every guest their side has in their hall. */
+    @Transactional(readOnly = true)
+    public Page<Guest> findManagedGuests(AdminPrincipal caller, Pageable pageable) {
+        if (caller.getHall() != null) {
+            return guestRepository.findAllManagedByHallAdmin(caller.getAdminId(), caller.getHall(), caller.getSide(), pageable);
+        }
+        return guestRepository.findAllByAdminIdAndDeletedFalseOrderByDisplayNameAsc(caller.getAdminId(), pageable);
     }
 
     /** Super-admin-only view of a chosen admin's guests. Access control is enforced at the controller/security layer. */
@@ -195,17 +204,14 @@ public class GuestService {
 
     /**
      * Ownership-checked lookup shared with other services/controllers (e.g. media, seating).
-     * super_admin bypasses ownership entirely — it manages guests across every admin,
-     * so this is the one place that rule needs to live, since every guest read/write in
-     * the app (view, edit, delete, media, table assignment) routes through this method.
+     * Who may manage which guest (super_admin: everyone's; hall admin: their side's in
+     * their hall) is decided by {@link AdminPrincipal#canManageGuest} — every guest
+     * read/write in the app (view, edit, delete, media, table assignment) routes through it.
      */
     @Transactional(readOnly = true)
     public Guest requireOwnedGuest(AdminPrincipal caller, UUID guestId) {
-        if (caller.isSuperAdmin()) {
-            return guestRepository.findByIdAndDeletedFalse(guestId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Guest not found: " + guestId));
-        }
-        return guestRepository.findByIdAndAdminIdAndDeletedFalse(guestId, caller.getAdminId())
+        return guestRepository.findByIdAndDeletedFalse(guestId)
+                .filter(caller::canManageGuest)
                 .orElseThrow(() -> new ResourceNotFoundException("Guest not found: " + guestId));
         // Deliberately 404, not 403: an admin shouldn't be able to tell the
         // difference between "doesn't exist" and "belongs to someone else".

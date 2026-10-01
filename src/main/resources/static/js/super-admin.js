@@ -1,6 +1,6 @@
 // super-admin.js — admin management + read-only drill-down into any admin's guest list.
 import * as api from './api.js';
-import { requireSuperAdmin, getUsername, logout } from './auth.js';
+import { requireSuperAdmin, getUsername, logout, HALL_SIDES } from './auth.js';
 import {
   showError, clearBanner, setLoading, setEmpty,
   renderPager, openModal, closeModal, escapeHtml,
@@ -59,6 +59,7 @@ function renderAdmins(admins) {
     <tr data-id="${a.id}">
       <td>${escapeHtml(a.username)} ${a.role === 'SUPER_ADMIN' ? `<span class="badge badge-super">${t('badge-super-admin')}</span>` : ''}</td>
       <td>${a.side ? escapeHtml(a.side) : '—'}</td>
+      <td>${a.role === 'SUPER_ADMIN' ? '—' : a.hall ? t('admin-hall-only-' + a.hall) : t('admin-hall-all-short')}</td>
       <td>${a.guestCount}</td>
       <td><span class="badge ${a.active ? 'badge-active' : 'badge-inactive'}">${a.active ? t('status-active') : t('status-disabled')}</span></td>
       <td class="cell-actions">
@@ -70,7 +71,7 @@ function renderAdmins(admins) {
   adminsContainer.innerHTML = `
     <div class="table-wrap">
       <table>
-        <thead><tr><th>${t('th-username')}</th><th>${t('th-side')}</th><th>${t('th-guests')}</th><th>${t('th-status')}</th><th></th></tr></thead>
+        <thead><tr><th>${t('th-username')}</th><th>${t('th-side')}</th><th>${t('th-hall')}</th><th>${t('th-guests')}</th><th>${t('th-status')}</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`;
@@ -96,8 +97,20 @@ function renderAdmins(admins) {
   });
 }
 
+// Samarkand is the groom side's alone — a bride-side admin can't be limited to it.
+const adminSideSelect = document.getElementById('admin-side');
+const adminHallSelect = document.getElementById('admin-hall');
+function syncAdminHallOptions() {
+  [...adminHallSelect.options].forEach((opt) => {
+    opt.disabled = !!opt.value && !HALL_SIDES[opt.value].includes(adminSideSelect.value);
+  });
+  if (adminHallSelect.selectedOptions[0]?.disabled) adminHallSelect.value = '';
+}
+adminSideSelect.addEventListener('change', syncAdminHallOptions);
+
 document.getElementById('add-admin-btn').addEventListener('click', () => {
   document.getElementById('admin-form').reset();
+  syncAdminHallOptions();
   clearBanner(document.getElementById('admin-modal-error'));
   openModal(document.getElementById('admin-modal-backdrop'));
 });
@@ -109,10 +122,11 @@ document.getElementById('admin-save-btn').addEventListener('click', async () => 
   clearBanner(errorBanner);
   const username = document.getElementById('admin-username').value.trim();
   const password = document.getElementById('admin-password').value;
-  const side = document.getElementById('admin-side').value;
+  const side = adminSideSelect.value;
+  const hall = adminHallSelect.value || null;
 
   try {
-    await api.createAdmin({ username, password, side });
+    await api.createAdmin({ username, password, side, hall });
     closeModal(document.getElementById('admin-modal-backdrop'));
     loadAdmins();
   } catch (err) {

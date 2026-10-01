@@ -3,8 +3,8 @@
 
 const STORAGE_KEY = 'wedding_admin_session';
 
-export function saveSession({ token, adminId, username, role, side }) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, adminId, username, role, side }));
+export function saveSession({ token, adminId, username, role, side, hall }) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, adminId, username, role, side, hall }));
 }
 
 export function getSession() {
@@ -41,6 +41,11 @@ export function getSide() {
   return getSession()?.side ?? null;
 }
 
+/** The one hall a hall admin (e.g. sam_hall) is limited to; null for everyone else. */
+export function getHall() {
+  return getSession()?.hall ?? null;
+}
+
 export function isSuperAdmin() {
   return getRole() === 'SUPER_ADMIN';
 }
@@ -49,9 +54,10 @@ export function isSuperAdmin() {
 // Samarkand is the groom side's alone; the bride side never sees it.
 export const HALL_SIDES = { TASHKENT: ['BRIDE', 'GROOM'], SAMARKAND: ['GROOM'] };
 
-/** Halls this admin can open, invite guests to and seat guests in (super admin: all of them). */
+/** Halls this admin can open, invite guests to and seat guests in (super admin: all of them; hall admin: just theirs). */
 export function getAccessibleHalls() {
-  return Object.keys(HALL_SIDES).filter((hall) => isSuperAdmin() || HALL_SIDES[hall].includes(getSide()));
+  return Object.keys(HALL_SIDES).filter((hall) => isSuperAdmin()
+    || (HALL_SIDES[hall].includes(getSide()) && (!getHall() || getHall() === hall)));
 }
 
 export function clearSession() {

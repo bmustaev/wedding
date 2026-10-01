@@ -4,8 +4,9 @@ import java.util.UUID;
 
 /**
  * A caller's own guest with no table yet — the draggable "roster" entries in the hall view.
- * ownerUsername is null for a regular admin (always their own guest, redundant to show) and
- * populated only when the caller is super_admin, viewing a mixed list from every admin.
+ * ownerUsername is null for the caller's own guests (redundant to show) and names the admin
+ * who added the guest otherwise — super_admin's mixed list from every admin, or a hall admin's
+ * view of their side's guests added by someone else.
  */
 public record UnassignedGuestResponse(
         UUID id,

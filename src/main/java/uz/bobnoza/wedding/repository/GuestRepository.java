@@ -1,5 +1,6 @@
 package uz.bobnoza.wedding.repository;
 
+import uz.bobnoza.wedding.entity.AdminSide;
 import uz.bobnoza.wedding.entity.Guest;
 import uz.bobnoza.wedding.entity.Hall;
 import org.springframework.data.domain.Page;
@@ -17,10 +18,16 @@ public interface GuestRepository extends JpaRepository<Guest, UUID> {
     /** Primary access path for an admin's own guest list — always filter by admin_id. */
     Page<Guest> findAllByAdminIdAndDeletedFalseOrderByDisplayNameAsc(UUID adminId, Pageable pageable);
 
-    /** Ownership-checked single lookup — returns empty if the guest belongs to a different admin. */
-    Optional<Guest> findByIdAndAdminIdAndDeletedFalse(UUID id, UUID adminId);
+    /**
+     * A hall admin's guest list: their own guests plus every guest their side
+     * has in their hall — the list form of AdminPrincipal#canManageGuest.
+     */
+    @Query("select g from Guest g where g.deleted = false " +
+           "and (g.admin.id = :adminId or (g.hall = :hall and g.admin.side = :side)) order by g.displayName asc")
+    Page<Guest> findAllManagedByHallAdmin(@Param("adminId") UUID adminId, @Param("hall") Hall hall,
+                                          @Param("side") AdminSide side, Pageable pageable);
 
-    /** Unrestricted lookup — only for super_admin, which has no ownership scope to filter by. */
+    /** Unscoped lookup — callers must check AdminPrincipal#canManageGuest on the result. */
     Optional<Guest> findByIdAndDeletedFalse(UUID id);
 
     /** Every unassigned guest of one hall across every admin — only for super_admin's hall view (a regular admin sees only their own). */

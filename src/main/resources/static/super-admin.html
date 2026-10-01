@@ -106,6 +106,15 @@
           </select>
         </div>
         <div class="field">
+          <label for="admin-hall" data-i18n="admin-hall-label">Hall access</label>
+          <select id="admin-hall">
+            <option value="" data-i18n="admin-hall-all">All halls of this side</option>
+            <option value="TASHKENT" data-i18n="admin-hall-only-TASHKENT">Tashkent only</option>
+            <option value="SAMARKAND" data-i18n="admin-hall-only-SAMARKAND">Samarkand only</option>
+          </select>
+          <p class="field-hint" data-i18n="admin-hall-hint">A one-hall admin sees only that hall, and manages every guest their side has there — not just the ones they added.</p>
+        </div>
+        <div class="field">
           <label for="admin-password" data-i18n="admin-password-label">Password</label>
           <input type="password" id="admin-password" minlength="8" maxlength="128" required />
           <p class="field-hint" data-i18n="admin-password-hint">At least 8 characters. Share it with them directly — it won't be shown again here.</p>

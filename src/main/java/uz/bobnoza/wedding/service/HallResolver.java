@@ -6,7 +6,8 @@ import uz.bobnoza.wedding.security.AdminPrincipal;
 
 /**
  * Turns a request's optional "hall" value into a {@link Hall} the caller may
- * use. Absent means TASHKENT (the main hall, so older clients keep working).
+ * use. Absent means the caller's own hall for a hall admin, else TASHKENT
+ * (the main hall, so older clients keep working).
  * A hall the caller can't access is reported as 404, same as an unknown one —
  * the bride side shouldn't be able to tell the Samarkand hall exists at all.
  */
@@ -17,7 +18,7 @@ final class HallResolver {
 
     static Hall resolve(AdminPrincipal caller, String requested) {
         if (requested == null || requested.isBlank()) {
-            return Hall.TASHKENT;
+            return caller.getHall() != null ? caller.getHall() : Hall.TASHKENT;
         }
         Hall hall;
         try {

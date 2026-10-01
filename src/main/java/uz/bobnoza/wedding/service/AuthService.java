@@ -42,6 +42,7 @@ public class AuthService {
 
         String token = jwtService.generateToken(principal);
         String side = admin.getSide() != null ? admin.getSide().name() : null;
-        return new LoginResponse(token, admin.getId(), admin.getUsername(), admin.getRole().name(), side);
+        String hall = admin.getHall() != null ? admin.getHall().name() : null;
+        return new LoginResponse(token, admin.getId(), admin.getUsername(), admin.getRole().name(), side, hall);
     }
 }

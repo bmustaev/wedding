@@ -29,7 +29,8 @@ import java.util.UUID;
 /**
  * An admin's own guest list. Every method here is scoped to the calling
  * admin via GuestService — an admin can never see or touch another admin's
- * guests through this controller, regardless of the ID in the URL.
+ * guests through this controller, regardless of the ID in the URL. (A hall
+ * admin's "own" list also covers every guest their side has in their hall.)
  */
 @RestController
 @RequestMapping("/api/guests")

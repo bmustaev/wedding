@@ -2,6 +2,7 @@ package uz.bobnoza.wedding.security;
 
 import uz.bobnoza.wedding.entity.Admin;
 import uz.bobnoza.wedding.entity.AdminSide;
+import uz.bobnoza.wedding.entity.Guest;
 import uz.bobnoza.wedding.entity.Hall;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -40,9 +41,33 @@ public class AdminPrincipal implements UserDetails {
         return admin.getSide();
     }
 
-    /** super_admin reaches every hall; a side admin only the halls open to their side (see {@link Hall#isOpenTo}). */
+    /** The one hall a hall admin is limited to (e.g. sam_hall: SAMARKAND); null for everyone else. */
+    public Hall getHall() {
+        return admin.getHall();
+    }
+
+    /**
+     * super_admin reaches every hall; a side admin only the halls open to
+     * their side (see {@link Hall#isOpenTo}) — and a hall admin only their own.
+     */
     public boolean canAccessHall(Hall hall) {
-        return isSuperAdmin() || hall.isOpenTo(getSide());
+        if (isSuperAdmin()) {
+            return true;
+        }
+        return hall.isOpenTo(getSide()) && (getHall() == null || getHall() == hall);
+    }
+
+    /**
+     * Whether this admin may view and edit the guest: super_admin any guest,
+     * every admin their own, and a hall admin also every guest their side
+     * has in their hall (whoever created it). Mirrored by the
+     * get_seating_chart_for_admin procedure's is_own_guest.
+     */
+    public boolean canManageGuest(Guest guest) {
+        if (isSuperAdmin() || guest.getAdmin().getId().equals(getAdminId())) {
+            return true;
+        }
+        return getHall() != null && guest.getHall() == getHall() && guest.getAdmin().getSide() == getSide();
     }
 
     @Override

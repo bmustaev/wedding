@@ -391,6 +391,13 @@ DROP PROCEDURE IF EXISTS add_samarkand_groom_check$$
 ALTER TABLE guests
     ADD COLUMN IF NOT EXISTS hall VARCHAR(20) NOT NULL DEFAULT 'tashkent' CHECK (hall IN ('tashkent', 'samarkand'))$$
 
+-- A "hall admin": a regular admin limited to one hall (e.g. sam_hall,
+-- groom side, Samarkand only), who manages every guest their side has in
+-- that hall — not just the ones they created. NULL (every other admin)
+-- means every hall open to their side, own guests only.
+ALTER TABLE admins
+    ADD COLUMN IF NOT EXISTS hall VARCHAR(20) NULL CHECK (hall IN ('tashkent', 'samarkand'))$$
+
 -- The original 8 generic tables (from before this feature existed) have
 -- no meaningful side and don't fit the new model — clear them out ONCE
 -- so data.sql can seed a proper head/bride/groom layout instead.
@@ -448,10 +455,14 @@ DROP PROCEDURE IF EXISTS get_seating_chart_for_admin$$
 CREATE PROCEDURE get_seating_chart_for_admin(IN p_admin_id CHAR(36))
 BEGIN
     -- super_admin sees every guest by name, same as if every guest were
-    -- its own — computed once here rather than repeating the subquery
-    -- per row.
+    -- its own; a hall admin (admins.hall set) likewise sees every guest
+    -- its side has in its hall — mirrors AdminPrincipal.canManageGuest.
+    -- Looked up once here rather than repeating the subquery per row.
     DECLARE v_is_super_admin BOOLEAN DEFAULT FALSE;
-    SELECT (role = 'super_admin') INTO v_is_super_admin FROM admins WHERE id = p_admin_id;
+    DECLARE v_side VARCHAR(10) DEFAULT NULL;
+    DECLARE v_hall VARCHAR(20) DEFAULT NULL;
+    SELECT (role = 'super_admin'), side, hall INTO v_is_super_admin, v_side, v_hall
+    FROM admins WHERE id = p_admin_id;
 
     SELECT
         st.id AS table_id,
@@ -463,18 +474,22 @@ BEGIN
         occ.seats_left,
         g.id AS guest_id,
         CASE WHEN v_is_super_admin OR g.admin_id = p_admin_id
+                  OR (v_hall IS NOT NULL AND g.hall = v_hall AND ga.side = v_side)
              THEN g.display_name
              ELSE CONCAT('Reserved (', g.party_size, ' seats)')
         END AS display_name,
         CASE WHEN v_is_super_admin OR g.admin_id = p_admin_id
+                  OR (v_hall IS NOT NULL AND g.hall = v_hall AND ga.side = v_side)
              THEN g.landing_slug
              ELSE NULL
         END AS landing_slug,
         g.party_size,
-        (v_is_super_admin OR g.admin_id = p_admin_id) AS is_own_guest
+        (v_is_super_admin OR g.admin_id = p_admin_id
+         OR (v_hall IS NOT NULL AND g.hall = v_hall AND ga.side = v_side)) AS is_own_guest
     FROM seating_tables st
     JOIN v_table_occupancy occ ON occ.table_id = st.id
     LEFT JOIN guests g ON g.table_id = st.id AND g.is_deleted = 0
+    LEFT JOIN admins ga ON ga.id = g.admin_id
     ORDER BY st.hall, st.side, st.table_number, is_own_guest DESC, g.display_name;
 END$$
 

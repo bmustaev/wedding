@@ -19,12 +19,13 @@ const callerSide = getSide(); // 'BRIDE' | 'GROOM' | null (null shouldn't reach 
 // -----------------------------------------------------------------------
 // Hall switcher — Tashkent (main) / Samarkand (groom side only). The
 // choice lives in the URL (?hall=samarkand) so a reload or a shared link
-// keeps it; anything unknown or not accessible falls back to Tashkent.
+// keeps it; anything unknown or not accessible falls back to the first
+// accessible hall — Tashkent, or a hall admin's own (Samarkand for sam_hall).
 // -----------------------------------------------------------------------
 
 const accessibleHalls = getAccessibleHalls();
 const requestedHall = (new URLSearchParams(location.search).get('hall') || '').toUpperCase();
-let currentHall = accessibleHalls.includes(requestedHall) ? requestedHall : 'TASHKENT';
+let currentHall = accessibleHalls.includes(requestedHall) ? requestedHall : accessibleHalls[0];
 
 const hallSwitcher = document.getElementById('hall-switcher');
 hallSwitcher.hidden = accessibleHalls.length < 2;

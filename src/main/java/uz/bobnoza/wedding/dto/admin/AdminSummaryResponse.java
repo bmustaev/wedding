@@ -8,6 +8,7 @@ public record AdminSummaryResponse(
         String username,
         String role,
         String side,
+        String hall,
         boolean active,
         long guestCount,
         Instant createdAt

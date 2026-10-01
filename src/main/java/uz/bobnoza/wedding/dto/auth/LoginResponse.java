@@ -7,5 +7,6 @@ public record LoginResponse(
         UUID adminId,
         String username,
         String role,
-        String side
+        String side,
+        String hall
 ) {}

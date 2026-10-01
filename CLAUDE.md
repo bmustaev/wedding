@@ -29,7 +29,9 @@ Both `bootRun` and the tests (`@SpringBootTest`) need a local MariaDB with a `we
 
 Three access levels: `super_admin`, regular `admin` (one per wedding side, `BRIDE` or `GROOM`), and unauthenticated guests. The core invariant: **every admin-facing service method takes `AdminPrincipal` and filters by its `admin_id`** — one admin can never see another's guests, and cross-admin lookups return **404, not 403** (so the other ID's existence isn't leaked; documented in API.md). Super admin bypasses ownership/side restrictions (`isSuperAdmin()` branches, `/api/super-admin/**` gated by `ROLE_SUPER_ADMIN` in `SecurityConfig`).
 
-An admin's `side` is intentionally **not** a JWT claim — it's re-derived from the DB row on every request via `AdminPrincipal.getSide()`, so side changes apply without reissuing tokens.
+The one deliberate exception is a **hall admin** (`admins.hall` set, e.g. `sam_hall` = groom side, Samarkand only): limited to that one hall, but manages every guest its side has there, whoever created them. Who-may-manage-which-guest lives in `AdminPrincipal.canManageGuest` (single-guest lookups), `GuestRepository.findAllManagedByHallAdmin` (lists) and the `get_seating_chart_for_admin` procedure's `is_own_guest` — keep the three in sync.
+
+An admin's `side` (and `hall`) is intentionally **not** a JWT claim — it's re-derived from the DB row on every request via `AdminPrincipal.getSide()`/`getHall()`, so changes apply without reissuing tokens.
 
 ### Auth
 
@@ -47,7 +49,7 @@ Stateless JWT (`JwtAuthFilter` → `JwtService`), token from `POST /api/auth/log
 
 ### Halls
 
-Every guest and every seating table has a `hall`: `TASHKENT` (main: head/bride/groom tables) or `SAMARKAND` (groom side only, tables 1B–8B seeded once in `data.sql`). `Hall.isOpenTo(side)` + `AdminPrincipal.canAccessHall()` are the access rule; a hall the caller can't access is treated as nonexistent (404), consistent with the ownership rule. A guest can only sit at a table in their own hall (Java check + `check_table_hall` in the guests triggers), and their hall picks which invitation (venue/date/time) `invitation.html` renders.
+Every guest and every seating table has a `hall`: `TASHKENT` (main: head/bride/groom tables) or `SAMARKAND` (groom side only, tables 1B–8B seeded once in `data.sql`). `Hall.isOpenTo(side)` + `AdminPrincipal.canAccessHall()` (which also applies a hall admin's single hall) are the access rule; a hall the caller can't access is treated as nonexistent (404), consistent with the ownership rule. A guest can only sit at a table in their own hall (Java check + `check_table_hall` in the guests triggers), and their hall picks which invitation (venue/date/time) `invitation.html` renders.
 
 ### Media
 

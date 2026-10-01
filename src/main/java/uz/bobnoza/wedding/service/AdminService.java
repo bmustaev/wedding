@@ -5,6 +5,7 @@ import uz.bobnoza.wedding.dto.admin.CreateAdminRequest;
 import uz.bobnoza.wedding.entity.Admin;
 import uz.bobnoza.wedding.entity.AdminRole;
 import uz.bobnoza.wedding.entity.AdminSide;
+import uz.bobnoza.wedding.entity.Hall;
 import uz.bobnoza.wedding.exception.ResourceNotFoundException;
 import uz.bobnoza.wedding.repository.AdminRepository;
 import uz.bobnoza.wedding.repository.GuestRepository;
@@ -52,6 +53,19 @@ public class AdminService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "side must be BRIDE or GROOM");
         }
 
+        Hall hall = null;
+        if (request.hall() != null && !request.hall().isBlank()) {
+            try {
+                hall = Hall.valueOf(request.hall().strip().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "hall must be TASHKENT or SAMARKAND");
+            }
+            if (!hall.isOpenTo(side)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "The " + hall.name() + " hall has no " + side.name() + " side");
+            }
+        }
+
         Admin creator = adminRepository.findById(creatorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Creating admin not found"));
 
@@ -60,6 +74,7 @@ public class AdminService {
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .role(AdminRole.ADMIN)
                 .side(side)
+                .hall(hall)
                 .active(true)
                 .createdBy(creator)
                 .build();
@@ -78,11 +93,13 @@ public class AdminService {
     private AdminSummaryResponse toSummary(Admin admin) {
         long guestCount = guestRepository.countByAdminIdAndDeletedFalse(admin.getId());
         String side = admin.getSide() != null ? admin.getSide().name() : null;
+        String hall = admin.getHall() != null ? admin.getHall().name() : null;
         return new AdminSummaryResponse(
                 admin.getId(),
                 admin.getUsername(),
                 admin.getRole().name(),
                 side,
+                hall,
                 admin.isActive(),
                 guestCount,
                 admin.getCreatedAt());

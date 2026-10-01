@@ -65,11 +65,14 @@ Every error follows the same shape:
   "adminId": "8a1e2b3c-4d5e-6f70-8192-a3b4c5d6e7f8",
   "username": "bride_side",
   "role": "ADMIN",
-  "side": "BRIDE"
+  "side": "BRIDE",
+  "hall": null
 }
 ```
 
 `side` is `"BRIDE"` or `"GROOM"` for a regular admin, `null` for a super admin. It's not read from a JWT claim — every request re-derives it fresh from the admin's row via `AdminPrincipal.getSide()`, so a side change takes effect on the very next request without needing a new token.
+
+`hall` is set only for a **hall admin** (e.g. `sam_hall`: `"GROOM"`, `"SAMARKAND"`) — one limited to that single hall. Everywhere else in this API, a hall admin behaves as if the other hall didn't exist (`404`), an omitted `hall` parameter means their own hall instead of `TASHKENT`, and their "own guests" are **every guest their side has in that hall**, whoever added them (see section 2). Like `side`, it's re-derived from the admin's row on every request.
 
 **Response `401`** (wrong password or disabled account):
 ```json
@@ -93,7 +96,9 @@ curl -X POST http://localhost:8080/api/auth/login \
 
 ## 2. Guest management (admin's own list)
 
-Every endpoint in this section is scoped to the calling admin — `admin_id` on the JWT determines which guests are visible, regardless of what ID appears in the URL.
+Every endpoint in this section is scoped to the calling admin — `admin_id` on the JWT determines which guests are visible, regardless of what ID appears in the URL. A guest the caller can't manage is a `404`, never a `403`.
+
+The one widening is a **hall admin** (`hall` set, see section 1): their list — and every guest/media/table-assignment endpoint below — covers their own guests **plus every guest their side has in their hall**, including ones another admin of that side added. Those other admins keep full access to their own guests too.
 
 ### `GET /api/guests`
 
@@ -417,7 +422,7 @@ Every table across all three sides, in every hall the caller can access. **Own g
 
 **Auth:** any admin
 
-Everything the hall-map page needs for **one hall** in a single call: the head table, every bride table, every groom table (each already carrying its guest list, isolation rules applied exactly as in `/chart`), plus the caller's own unassigned guests invited to that hall, for populating a "drag from here" roster. Not paginated — returns all of them at once.
+Everything the hall-map page needs for **one hall** in a single call: the head table, every bride table, every groom table (each already carrying its guest list, isolation rules applied exactly as in `/chart`), plus the caller's own unassigned guests invited to that hall, for populating a "drag from here" roster. Not paginated — returns all of them at once. Unassigned entries carry `ownerUsername` when the guest isn't the caller's own (super admin; a hall admin seeing another admin's guest), `null` otherwise.
 
 **Query param:** `hall` — `TASHKENT` (default) or `SAMARKAND` (case-insensitive; `404` for the bride side). Samarkand has no head table (`headTable: null`) and no bride tables.
 
@@ -556,6 +561,7 @@ Requires a `super_admin` token. A regular admin's token gets a blanket `403` on 
     "username": "bride_side",
     "role": "ADMIN",
     "side": "BRIDE",
+    "hall": null,
     "active": true,
     "guestCount": 12,
     "createdAt": "2026-09-01T09:00:00Z"
@@ -565,6 +571,7 @@ Requires a `super_admin` token. A regular admin's token gets a blanket `403` on 
     "username": "super_admin",
     "role": "SUPER_ADMIN",
     "side": null,
+    "hall": null,
     "active": true,
     "guestCount": 0,
     "createdAt": "2026-09-01T09:00:00Z"
@@ -577,12 +584,13 @@ Requires a `super_admin` token. A regular admin's token gets a blanket `403` on 
 **Request:**
 ```json
 {
-  "username": "groom_side",
+  "username": "sam_hall",
   "password": "a-real-password-here",
-  "side": "GROOM"
+  "side": "GROOM",
+  "hall": "SAMARKAND"
 }
 ```
-(`username`: 3–64 chars; `password`: 8–128 chars, validated but **not** hashed client-side — the server hashes it. `side`: `"BRIDE"` or `"GROOM"`, required — `400` on anything else.)
+(`username`: 3–64 chars; `password`: 8–128 chars, validated but **not** hashed client-side — the server hashes it. `side`: `"BRIDE"` or `"GROOM"`, required — `400` on anything else. `hall`: optional — `"TASHKENT"` or `"SAMARKAND"` makes a hall admin (see section 1), omitted/`null` gives access to every hall of that side; `400` for an unknown hall or one the side doesn't have, e.g. a bride-side Samarkand admin.)
 
 **Response `201`:** an `AdminSummaryResponse`. New admins are always created with role `ADMIN` — only a database operator can create another `SUPER_ADMIN`.
 

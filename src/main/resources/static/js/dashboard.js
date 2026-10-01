@@ -1,6 +1,6 @@
 // dashboard.js — admin dashboard: guest CRUD, seating, bulk import.
 import * as api from './api.js';
-import { requireAuth, getRole, getUsername, isSuperAdmin, logout, getAccessibleHalls } from './auth.js';
+import { requireAuth, getRole, getUsername, isSuperAdmin, logout, getAccessibleHalls, getHall } from './auth.js';
 import {
   showError, clearBanner, setLoading, setEmpty,
   renderPager, escapeHtml, copyToClipboard,
@@ -21,6 +21,13 @@ document.getElementById('sidebar-role').textContent =
   getRole() === 'SUPER_ADMIN' ? t('sidebar-role-super') : t('sidebar-role-admin');
 document.getElementById('sidebar-username').textContent = getUsername() || '';
 document.getElementById('logout-btn').addEventListener('click', logout);
+
+// A hall admin's list isn't just their own — it's every guest their side has in their hall.
+const ownHall = getHall();
+if (ownHall) {
+  document.getElementById('guests-subtitle').textContent =
+    t('guests-subtitle-hall', { hall: t('hall-name-' + ownHall) });
+}
 
 if (isSuperAdmin()) {
   const link = document.getElementById('nav-super-admin');

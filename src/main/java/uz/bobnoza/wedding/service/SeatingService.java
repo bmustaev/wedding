@@ -62,15 +62,18 @@ public class SeatingService {
     private final JdbcTemplate jdbcTemplate;
     private final GuestRepository guestRepository;
     private final SeatingTableRepository seatingTableRepository;
+    private final GuestService guestService;
     private final String invitationBaseUrl;
 
     public SeatingService(JdbcTemplate jdbcTemplate,
                            GuestRepository guestRepository,
                            SeatingTableRepository seatingTableRepository,
+                           GuestService guestService,
                            @Value("${app.invitation.base-url}") String invitationBaseUrl) {
         this.jdbcTemplate = jdbcTemplate;
         this.guestRepository = guestRepository;
         this.seatingTableRepository = seatingTableRepository;
+        this.guestService = guestService;
         this.invitationBaseUrl = invitationBaseUrl;
     }
 
@@ -104,7 +107,8 @@ public class SeatingService {
      * table (Tashkent only), every bride table, every groom table (each with its seated guests, isolation
      * rules already applied — super_admin sees every guest by name, since
      * the stored procedure grants it the same visibility as an owner), plus
-     * the unassigned-guest roster: the caller's own guests, or — for
+     * the unassigned-guest roster: the caller's own guests (a hall admin's:
+     * every guest their side has in their hall), or — for
      * super_admin — every admin's unassigned guests, since it has no side
      * or ownership of its own to scope that list by. Only guests invited to
      * this hall are listed as unassigned — they can't be seated anywhere else.
@@ -145,10 +149,12 @@ public class SeatingService {
                                 g.getId(), g.getDisplayName(), g.getPartySize(), g.isGroup(), g.getAdmin().getUsername(),
                                 invitationBaseUrl + "/" + g.getLandingSlug()))
                         .toList()
-                : guestRepository.findAllByAdminIdAndDeletedFalseOrderByDisplayNameAsc(caller.getAdminId(), Pageable.unpaged())
+                : guestService.findManagedGuests(caller, Pageable.unpaged())
                         .stream()
                         .filter(g -> g.getTable() == null && g.getHall() == hall)
-                        .map(g -> new UnassignedGuestResponse(g.getId(), g.getDisplayName(), g.getPartySize(), g.isGroup(), null,
+                        .map(g -> new UnassignedGuestResponse(g.getId(), g.getDisplayName(), g.getPartySize(), g.isGroup(),
+                                // A hall admin also sees other admins' guests — name who added them.
+                                g.getAdmin().getId().equals(caller.getAdminId()) ? null : g.getAdmin().getUsername(),
                                 invitationBaseUrl + "/" + g.getLandingSlug()))
                         .toList();
 
@@ -234,13 +240,10 @@ public class SeatingService {
     // Helpers
     // -----------------------------------------------------------------
 
-    /** Resolves the guest for an assign/unassign action — any guest for super_admin, own guest only otherwise. */
+    /** Resolves the guest for an assign/unassign action — only a guest the caller may manage (see AdminPrincipal#canManageGuest). */
     private Guest resolveGuestForAction(AdminPrincipal caller, UUID guestId) {
-        if (caller.isSuperAdmin()) {
-            return guestRepository.findByIdAndDeletedFalse(guestId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Guest not found: " + guestId));
-        }
-        return guestRepository.findByIdAndAdminIdAndDeletedFalse(guestId, caller.getAdminId())
+        return guestRepository.findByIdAndDeletedFalse(guestId)
+                .filter(caller::canManageGuest)
                 .orElseThrow(() -> new ResourceNotFoundException("Guest not found: " + guestId));
     }
 

@@ -42,6 +42,14 @@ public class Admin {
     @Column
     private AdminSide side;
 
+    /**
+     * Set only for a hall admin: limited to this one hall, but manages every
+     * guest their side has there (see AdminPrincipal#canManageGuest). Null —
+     * every hall open to their side, own guests only.
+     */
+    @Column
+    private Hall hall;
+
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
@@ -64,13 +72,14 @@ public class Admin {
         // required by JPA
     }
 
-    public Admin(UUID id, String username, String passwordHash, AdminRole role, AdminSide side, boolean active,
+    public Admin(UUID id, String username, String passwordHash, AdminRole role, AdminSide side, Hall hall, boolean active,
                  Admin createdBy, Instant lastLoginAt, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.username = username;
         this.passwordHash = passwordHash;
         this.role = role;
         this.side = side;
+        this.hall = hall;
         this.active = active;
         this.createdBy = createdBy;
         this.lastLoginAt = lastLoginAt;
@@ -124,6 +133,14 @@ public class Admin {
 
     public void setSide(AdminSide side) {
         this.side = side;
+    }
+
+    public Hall getHall() {
+        return hall;
+    }
+
+    public void setHall(Hall hall) {
+        this.hall = hall;
     }
 
     public boolean isActive() {
@@ -184,6 +201,7 @@ public class Admin {
         private String passwordHash;
         private AdminRole role = AdminRole.ADMIN;
         private AdminSide side;
+        private Hall hall;
         private boolean active = true;
         private Admin createdBy;
         private Instant lastLoginAt;
@@ -195,6 +213,7 @@ public class Admin {
         public Builder passwordHash(String passwordHash) { this.passwordHash = passwordHash; return this; }
         public Builder role(AdminRole role) { this.role = role; return this; }
         public Builder side(AdminSide side) { this.side = side; return this; }
+        public Builder hall(Hall hall) { this.hall = hall; return this; }
         public Builder active(boolean active) { this.active = active; return this; }
         public Builder createdBy(Admin createdBy) { this.createdBy = createdBy; return this; }
         public Builder lastLoginAt(Instant lastLoginAt) { this.lastLoginAt = lastLoginAt; return this; }
@@ -202,7 +221,7 @@ public class Admin {
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
 
         public Admin build() {
-            return new Admin(id, username, passwordHash, role, side, active, createdBy, lastLoginAt, createdAt, updatedAt);
+            return new Admin(id, username, passwordHash, role, side, hall, active, createdBy, lastLoginAt, createdAt, updatedAt);
         }
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
@@ -87,6 +88,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleUploadTooLarge(MaxUploadSizeExceededException ex) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                 .body(ApiErrorResponse.of(413, "Payload Too Large", "The uploaded file exceeds the size limit"));
+    }
+
+    /**
+     * Services that throw ResponseStatusException directly (e.g. AdminService's
+     * 409 "Username is already taken", 400 bad side/hall) — keep their status
+     * and message instead of letting the catch-all below turn them into a 500.
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiErrorResponse> handleResponseStatus(ResponseStatusException ex) {
+        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+        return ResponseEntity.status(status)
+                .body(ApiErrorResponse.of(status.value(), status.getReasonPhrase(), ex.getReason()));
     }
 
     @ExceptionHandler(Exception.class)
