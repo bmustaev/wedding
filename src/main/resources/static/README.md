@@ -48,7 +48,7 @@ app:
 
 Guests are invited to one of two celebrations — each guest has a `hall` (`TASHKENT` or `SAMARKAND`, see API.md section 4). Samarkand belongs to the groom side alone: the bride side never sees the hall switcher, the guest editor's "Hall" picker, or the dashboard's "Hall" column (`getAccessibleHalls()` in `js/auth.js`, mirroring `Hall.java`).
 
-`invitation.html` is one page for both: `js/invitation.js` reads the guest's `hall` and picks the event date (`EVENT_DATES`) and map query, and `js/i18n.js` overlays `HALL_STRINGS.SAMARKAND` on top of the Tashkent copy for venue/date/time text. The static `<title>`/Open Graph tags in `invitation.html` can't vary per guest (no server-side templating), so link previews always describe the Tashkent celebration.
+`invitation.html` is one page for both: `js/invitation.js` reads the guest's `hall` and picks the event date (`EVENT_DATES`) and map query, and `js/i18n.js` overlays `HALL_STRINGS.SAMARKAND` on top of the Tashkent copy for venue/date/time text. The static `<title>`/Open Graph tags in `invitation.html` describe Tashkent; messenger crawlers don't run JS, so for a Samarkand guest `InvitationRedirectController` serves `/i/{slug}` with those head tags rewritten to Samarkand's date and venue (its `SAMARKAND_HEAD` must match the head text — startup fails if it drifts). The `invitation.html?slug=` form always previews as Tashkent.
 
 ## Auth
 

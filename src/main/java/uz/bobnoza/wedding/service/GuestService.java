@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -152,6 +153,16 @@ public class GuestService {
         return guestRepository.findByLandingSlugAndDeletedFalse(slug)
                 .map(Guest::getId)
                 .orElseThrow(() -> new ResourceNotFoundException("Invitation not found"));
+    }
+
+    /**
+     * The hall a slug's invitation is for, without touching first_viewed_at —
+     * used to pick link-preview meta tags, which messenger crawlers fetch
+     * before (or without) the guest ever opening the link.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Hall> findHallBySlug(String slug) {
+        return guestRepository.findByLandingSlugAndDeletedFalse(slug).map(Guest::getHall);
     }
 
     /** What a guest sees on their own landing page, reached via {@link #resolveGuestIdBySlug}. */
