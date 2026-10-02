@@ -25,13 +25,24 @@ public interface GuestMediaRepository extends JpaRepository<GuestMedia, UUID> {
 
     List<GuestMedia> findAllByProcessingStatus(ProcessingStatus processingStatus);
 
+    /** A guest's quest uploads (photos and videos), quest fetched. */
+    @Query("select m from GuestMedia m join fetch m.quest where m.guest.id = :guestId")
+    List<GuestMedia> findAllQuestUploadsOfGuest(@Param("guestId") UUID guestId);
+
+    boolean existsByGuestIdAndQuestId(UUID guestId, UUID questId);
+
+    /** How many guests have completed each of a hall's quests, as [questId, count] (failed conversions don't count). */
+    @Query("select m.quest.id, count(m) from GuestMedia m where m.quest.hall = :hall and m.guest.deleted = false " +
+           "and m.processingStatus <> :failed group by m.quest.id")
+    List<Object[]> countQuestCompletions(@Param("hall") Hall hall, @Param("failed") ProcessingStatus failed);
+
     /** One hall's media of one type, with guest + table fetched for grouping by table. */
-    @Query("select m from GuestMedia m join fetch m.guest g join fetch g.admin left join fetch g.table " +
+    @Query("select m from GuestMedia m join fetch m.guest g join fetch g.admin left join fetch g.table left join fetch m.quest " +
            "where g.deleted = false and g.hall = :hall and m.mediaType = :mediaType")
     List<GuestMedia> findAllInHall(@Param("hall") Hall hall, @Param("mediaType") MediaType mediaType);
 
     /** One hall's finished photos and videos with the given visibility — the guests' shared feed. */
-    @Query("select m from GuestMedia m join fetch m.guest g left join fetch g.table " +
+    @Query("select m from GuestMedia m join fetch m.guest g left join fetch g.table left join fetch m.quest " +
            "where g.deleted = false and g.hall = :hall and m.visibility = :visibility and m.processingStatus = :status")
     List<GuestMedia> findAllInHallByVisibility(@Param("hall") Hall hall, @Param("visibility") MediaVisibility visibility,
                                                @Param("status") ProcessingStatus status);

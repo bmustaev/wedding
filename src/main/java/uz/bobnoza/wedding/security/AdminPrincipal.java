@@ -1,6 +1,7 @@
 package uz.bobnoza.wedding.security;
 
 import uz.bobnoza.wedding.entity.Admin;
+import uz.bobnoza.wedding.entity.AdminRole;
 import uz.bobnoza.wedding.entity.AdminSide;
 import uz.bobnoza.wedding.entity.Guest;
 import uz.bobnoza.wedding.entity.Hall;
@@ -36,23 +37,42 @@ public class AdminPrincipal implements UserDetails {
         return admin.isSuperAdmin();
     }
 
+    /** A DJ login: one hall's playlist and nothing else (SecurityConfig keeps it to /api/playlist/**). */
+    public boolean isDj() {
+        return admin.getRole() == AdminRole.DJ;
+    }
+
+    /** A banker login: one hall's bank table and nothing else (SecurityConfig keeps it to /api/bank/**). */
+    public boolean isBanker() {
+        return admin.getRole() == AdminRole.BANKER;
+    }
+
+    /** A DJ or a banker: one job in one hall, no side, no guests of their own. */
+    private boolean isHallStaff() {
+        return isDj() || isBanker();
+    }
+
     /** Null for super_admin. */
     public AdminSide getSide() {
         return admin.getSide();
     }
 
-    /** The one hall a hall admin is limited to (e.g. sam_hall: SAMARKAND); null for everyone else. */
+    /** The one hall a hall admin (e.g. sam_hall: SAMARKAND), a DJ or a banker is limited to; null for everyone else. */
     public Hall getHall() {
         return admin.getHall();
     }
 
     /**
      * super_admin reaches every hall; a side admin only the halls open to
-     * their side (see {@link Hall#isOpenTo}) — and a hall admin only their own.
+     * their side (see {@link Hall#isOpenTo}) — and a hall admin, a DJ or a
+     * banker only their own.
      */
     public boolean canAccessHall(Hall hall) {
         if (isSuperAdmin()) {
             return true;
+        }
+        if (isHallStaff()) {
+            return hall == getHall();
         }
         return hall.isOpenTo(getSide()) && (getHall() == null || getHall() == hall);
     }
@@ -64,6 +84,9 @@ public class AdminPrincipal implements UserDetails {
      * get_seating_chart_for_admin procedure's is_own_guest.
      */
     public boolean canManageGuest(Guest guest) {
+        if (isHallStaff()) {
+            return false;
+        }
         if (isSuperAdmin() || guest.getAdmin().getId().equals(getAdminId())) {
             return true;
         }
@@ -72,8 +95,7 @@ public class AdminPrincipal implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        String role = admin.isSuperAdmin() ? "ROLE_SUPER_ADMIN" : "ROLE_ADMIN";
-        return List.of(new SimpleGrantedAuthority(role));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + admin.getRole().name()));
     }
 
     @Override

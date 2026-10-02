@@ -84,6 +84,12 @@ app:
       vips: ${VIPS_PATH:vips}
       vipsheader: ${VIPSHEADER_PATH:vipsheader}
       vipsthumbnail: ${VIPSTHUMBNAIL_PATH:vipsthumbnail}
+  playlist:
+    # Ducats (paper props, paid to the DJ in person) for one song.
+    song-price: 15
+    # Unpaid orders one guest may have at a time — mirrored by the database
+    # (trg_song_orders_insert), change together.
+    max-pending-orders: 3
   seating:
     default-table-capacity: 12
   invitation:

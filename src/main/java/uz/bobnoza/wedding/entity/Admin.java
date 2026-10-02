@@ -17,7 +17,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Super admins and regular admins share this table; {@link #role} distinguishes them.
+ * Super admins, regular admins, DJs and bankers share this table; {@link #role} distinguishes them.
  * Guests never have a row here — they authenticate purely via {@link Guest#getLandingSlug()}.
  */
 @Entity
@@ -38,20 +38,28 @@ public class Admin {
     @Column(nullable = false)
     private AdminRole role = AdminRole.ADMIN;
 
-    /** Null for super_admin — every regular admin must have one. */
+    /** Null for super_admin, DJs and bankers — every regular admin must have one. */
     @Column
     private AdminSide side;
 
     /**
      * Set only for a hall admin: limited to this one hall, but manages every
      * guest their side has there (see AdminPrincipal#canManageGuest). Null —
-     * every hall open to their side, own guests only.
+     * every hall open to their side, own guests only. Always set for a DJ
+     * (the hall whose playlist they work) and a banker (whose bank table).
      */
     @Column
     private Hall hall;
 
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
+
+    /**
+     * The 4-digit PIN this person types on a guest's phone at the bank
+     * table, as BankCodes#pinDigest — never the digits. Null: none set.
+     */
+    @Column(name = "bank_pin")
+    private String bankPin;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
@@ -149,6 +157,14 @@ public class Admin {
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    public String getBankPin() {
+        return bankPin;
+    }
+
+    public void setBankPin(String bankPin) {
+        this.bankPin = bankPin;
     }
 
     public Admin getCreatedBy() {

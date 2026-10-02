@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS admins (
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT uk_admins_username UNIQUE (username),
-    CONSTRAINT ck_admins_role CHECK (role IN ('super_admin', 'admin')),
+    CONSTRAINT ck_admins_role CHECK (role IN ('super_admin', 'admin', 'dj', 'banker')),
     CONSTRAINT fk_admins_created_by FOREIGN KEY (created_by) REFERENCES admins (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci$$
 
@@ -639,3 +639,508 @@ DROP PROCEDURE IF EXISTS add_media_visibility$$
 ALTER TABLE media_uploads
     ADD COLUMN IF NOT EXISTS visibility VARCHAR(10) NOT NULL DEFAULT 'private'
         CHECK (visibility IN ('public', 'private'))$$
+
+
+-- =====================================================================
+-- QUESTS — photo and video challenges for the guests of one hall ("Selfie
+-- with the groom", "The cake before it's cut"). Hall-wide content, managed
+-- by any admin who can open that hall (QuestService), like the hall
+-- itself. A guest completes a quest by uploading what it asks for
+-- (media_type) through the normal media pipeline: the upload session and
+-- the resulting guest_media row carry quest_id. One upload per quest per
+-- guest; deleting it (or a banker rejecting it, see BANK below) re-opens
+-- the quest, deleting the quest keeps the uploads as plain ones.
+-- =====================================================================
+
+CREATE TABLE IF NOT EXISTS quests (
+    id              CHAR(36) NOT NULL PRIMARY KEY,
+    hall            VARCHAR(20) NOT NULL,
+    title           VARCHAR(150) NOT NULL,
+    description     VARCHAR(600) NULL,
+    is_active       TINYINT(1) NOT NULL DEFAULT 1,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT ck_quests_hall CHECK (hall IN ('tashkent', 'samarkand')),
+    INDEX idx_quests_hall (hall, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci$$
+
+-- What completes the quest: a photo, or a video ("10 seconds of the best
+-- dancer"). Added after the table first shipped, hence the ALTER.
+ALTER TABLE quests
+    ADD COLUMN IF NOT EXISTS media_type VARCHAR(10) NOT NULL DEFAULT 'photo' CHECK (media_type IN ('photo', 'video'))$$
+
+ALTER TABLE guest_media ADD COLUMN IF NOT EXISTS quest_id CHAR(36) NULL$$
+
+ALTER TABLE media_uploads ADD COLUMN IF NOT EXISTS quest_id CHAR(36) NULL$$
+
+-- NULLs don't collide in a UNIQUE key, so plain photos are unaffected.
+ALTER TABLE guest_media ADD UNIQUE INDEX IF NOT EXISTS uk_guest_media_quest (guest_id, quest_id)$$
+
+DROP PROCEDURE IF EXISTS add_quest_foreign_keys$$
+
+CREATE PROCEDURE add_quest_foreign_keys()
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+                   WHERE CONSTRAINT_SCHEMA = DATABASE()
+                     AND TABLE_NAME = 'guest_media'
+                     AND CONSTRAINT_NAME = 'fk_guest_media_quest') THEN
+        ALTER TABLE guest_media
+            ADD CONSTRAINT fk_guest_media_quest FOREIGN KEY (quest_id) REFERENCES quests (id) ON DELETE SET NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+                   WHERE CONSTRAINT_SCHEMA = DATABASE()
+                     AND TABLE_NAME = 'media_uploads'
+                     AND CONSTRAINT_NAME = 'fk_media_uploads_quest') THEN
+        ALTER TABLE media_uploads
+            ADD CONSTRAINT fk_media_uploads_quest FOREIGN KEY (quest_id) REFERENCES quests (id) ON DELETE SET NULL;
+    END IF;
+END$$
+
+CALL add_quest_foreign_keys()$$
+DROP PROCEDURE IF EXISTS add_quest_foreign_keys$$
+
+-- A quest upload must be what the quest asks for (photo or video), of a
+-- quest in the guest's own hall — last line of defense behind
+-- MediaUploadService.start / QuestService.requireOpenQuest.
+DROP PROCEDURE IF EXISTS check_media_quest$$
+
+CREATE PROCEDURE check_media_quest(
+    IN p_quest_id CHAR(36),
+    IN p_guest_id CHAR(36),
+    IN p_media_type VARCHAR(10)
+)
+BEGIN
+    DECLARE v_quest_hall VARCHAR(20);
+    DECLARE v_quest_media_type VARCHAR(10);
+    DECLARE v_guest_hall VARCHAR(20);
+
+    IF p_quest_id IS NOT NULL THEN
+        SELECT hall, media_type INTO v_quest_hall, v_quest_media_type FROM quests WHERE id = p_quest_id;
+        IF p_media_type <> v_quest_media_type THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This quest asks for a different kind of upload (photo or video)';
+        END IF;
+        SELECT hall INTO v_guest_hall FROM guests WHERE id = p_guest_id;
+        IF v_quest_hall <> v_guest_hall THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This quest is for a different hall than the guest is invited to';
+        END IF;
+    END IF;
+END$$
+
+DROP TRIGGER IF EXISTS trg_guest_media_quest_insert$$
+DROP TRIGGER IF EXISTS trg_guest_media_quest_update$$
+
+CREATE TRIGGER trg_guest_media_quest_insert
+BEFORE INSERT ON guest_media
+FOR EACH ROW
+BEGIN
+    CALL check_media_quest(NEW.quest_id, NEW.guest_id, NEW.media_type);
+END$$
+
+-- ON DELETE SET NULL of fk_guest_media_quest doesn't fire triggers, and a
+-- NULL quest passes the check anyway.
+CREATE TRIGGER trg_guest_media_quest_update
+BEFORE UPDATE ON guest_media
+FOR EACH ROW
+BEGIN
+    IF NOT (NEW.quest_id <=> OLD.quest_id) THEN
+        CALL check_media_quest(NEW.quest_id, NEW.guest_id, NEW.media_type);
+    END IF;
+END$$
+
+
+-- =====================================================================
+-- BETS — "who cries first?"-style predictions for the guests of one hall,
+-- no money involved. An admin opens a bet with its options; guests pick
+-- one (and may change it) while it's 'open'; 'closed' stops picks; once
+-- the admin marks the right option it's 'settled' and counts for the
+-- hall's leaderboard (BetService). Like quests, hall-wide content managed
+-- by any admin who can open the hall.
+-- =====================================================================
+
+CREATE TABLE IF NOT EXISTS bets (
+    id                  CHAR(36) NOT NULL PRIMARY KEY,
+    hall                VARCHAR(20) NOT NULL,
+    question            VARCHAR(300) NOT NULL,
+    status              VARCHAR(10) NOT NULL DEFAULT 'open',
+    correct_option_id   CHAR(36) NULL,
+    created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT ck_bets_hall CHECK (hall IN ('tashkent', 'samarkand')),
+    CONSTRAINT ck_bets_status CHECK (status IN ('open', 'closed', 'settled')),
+    -- Settled exactly when the right answer is known.
+    CONSTRAINT ck_bets_settled CHECK ((status = 'settled') = (correct_option_id IS NOT NULL)),
+    INDEX idx_bets_hall (hall, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci$$
+
+CREATE TABLE IF NOT EXISTS bet_options (
+    id              CHAR(36) NOT NULL PRIMARY KEY,
+    bet_id          CHAR(36) NOT NULL,
+    label           VARCHAR(150) NOT NULL,
+    display_order   INT NOT NULL DEFAULT 0,
+
+    -- Target of bet_votes' composite FK: a vote's option belongs to its bet.
+    CONSTRAINT uk_bet_options_bet_option UNIQUE (bet_id, id),
+    CONSTRAINT fk_bet_options_bet FOREIGN KEY (bet_id) REFERENCES bets (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci$$
+
+CREATE TABLE IF NOT EXISTS bet_votes (
+    id              CHAR(36) NOT NULL PRIMARY KEY,
+    bet_id          CHAR(36) NOT NULL,
+    option_id       CHAR(36) NOT NULL,
+    guest_id        CHAR(36) NOT NULL,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT uk_bet_votes_bet_guest UNIQUE (bet_id, guest_id),
+    CONSTRAINT fk_bet_votes_option FOREIGN KEY (bet_id, option_id) REFERENCES bet_options (bet_id, id) ON DELETE CASCADE,
+    CONSTRAINT fk_bet_votes_guest FOREIGN KEY (guest_id) REFERENCES guests (id) ON DELETE CASCADE,
+    INDEX idx_bet_votes_guest (guest_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci$$
+
+-- correct_option_id has no FK (bets <-> bet_options would be a cycle that
+-- blocks cascading deletes); this trigger keeps it pointing at one of the
+-- bet's own options instead.
+DROP TRIGGER IF EXISTS trg_bets_correct_option$$
+
+CREATE TRIGGER trg_bets_correct_option
+BEFORE UPDATE ON bets
+FOR EACH ROW
+BEGIN
+    IF NEW.correct_option_id IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM bet_options WHERE id = NEW.correct_option_id AND bet_id = NEW.id) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'The right answer must be one of the options of this bet';
+    END IF;
+END$$
+
+-- Picks only while the bet is open, and only by guests of the bet's hall.
+DROP PROCEDURE IF EXISTS check_bet_vote$$
+
+CREATE PROCEDURE check_bet_vote(
+    IN p_bet_id CHAR(36),
+    IN p_guest_id CHAR(36)
+)
+BEGIN
+    DECLARE v_status VARCHAR(10);
+    DECLARE v_bet_hall VARCHAR(20);
+    DECLARE v_guest_hall VARCHAR(20);
+
+    SELECT status, hall INTO v_status, v_bet_hall FROM bets WHERE id = p_bet_id;
+    SELECT hall INTO v_guest_hall FROM guests WHERE id = p_guest_id;
+
+    IF v_status <> 'open' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This bet is no longer taking picks';
+    END IF;
+    IF v_bet_hall <> v_guest_hall THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This bet is for a different hall than the guest is invited to';
+    END IF;
+END$$
+
+DROP TRIGGER IF EXISTS trg_bet_votes_insert$$
+DROP TRIGGER IF EXISTS trg_bet_votes_update$$
+
+CREATE TRIGGER trg_bet_votes_insert
+BEFORE INSERT ON bet_votes
+FOR EACH ROW
+BEGIN
+    CALL check_bet_vote(NEW.bet_id, NEW.guest_id);
+END$$
+
+CREATE TRIGGER trg_bet_votes_update
+BEFORE UPDATE ON bet_votes
+FOR EACH ROW
+BEGIN
+    CALL check_bet_vote(NEW.bet_id, NEW.guest_id);
+END$$
+
+
+-- =====================================================================
+-- PLAYLIST — the band's songs per hall, liked and bought by the guests
+-- (PlaylistService). Hall-wide content like quests and bets: any admin
+-- who can open the hall manages it, and so does that hall's DJ (a 'dj'
+-- account — see below).
+--
+--   * Likes: one per guest and song, open until playlist_settings.
+--     likes_close_at (20:50 on the evening). The two most-liked songs at
+--     that moment are played after it; likes freeze so the result can't
+--     move any more.
+--   * Orders: a guest buys a song for ducats — paper props handed out at
+--     the wedding, so no balance lives here. The order waits as 'pending'
+--     until the guest pays the DJ in person, who marks it 'paid' (it's
+--     now in the band's queue) and then 'played'; 'cancelled' if it never
+--     happens.
+--
+-- Times in playlist_settings are the venue's wall clock: Uzbekistan is
+-- UTC+5 all year (no DST), so the triggers compare against UTC+5 directly
+-- — independent of the server's or the JVM's own time zone. Mirrored by
+-- PlaylistService.VENUE_OFFSET.
+-- =====================================================================
+
+-- A DJ: a login limited to one hall's playlist (SecurityConfig lets the
+-- 'dj' role reach /api/playlist/** only). No side, but always a hall.
+DROP PROCEDURE IF EXISTS apply_admins_dj_role_migration$$
+
+CREATE PROCEDURE apply_admins_dj_role_migration()
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM schema_migrations WHERE migration_name = 'admins_dj_role_v1') THEN
+        ALTER TABLE admins DROP CONSTRAINT IF EXISTS ck_admins_role;
+        ALTER TABLE admins ADD CONSTRAINT ck_admins_role CHECK (role IN ('super_admin', 'admin', 'dj'));
+        ALTER TABLE admins ADD CONSTRAINT ck_admins_dj_hall CHECK (role <> 'dj' OR (hall IS NOT NULL AND side IS NULL));
+        INSERT INTO schema_migrations (migration_name) VALUES ('admins_dj_role_v1');
+    END IF;
+END$$
+
+CALL apply_admins_dj_role_migration()$$
+DROP PROCEDURE IF EXISTS apply_admins_dj_role_migration$$
+
+CREATE TABLE IF NOT EXISTS playlist_settings (
+    hall            VARCHAR(20) NOT NULL PRIMARY KEY,
+    -- Venue wall-clock time (UTC+5) at which likes freeze.
+    likes_close_at  DATETIME NOT NULL,
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT ck_playlist_settings_hall CHECK (hall IN ('tashkent', 'samarkand'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci$$
+
+CREATE TABLE IF NOT EXISTS songs (
+    id              CHAR(36) NOT NULL PRIMARY KEY,
+    hall            VARCHAR(20) NOT NULL,
+    artist          VARCHAR(150) NOT NULL,
+    title           VARCHAR(200) NOT NULL,
+    language        VARCHAR(10) NOT NULL,
+    -- Hidden songs stay out of the guests' list but keep their likes and orders.
+    is_active       TINYINT(1) NOT NULL DEFAULT 1,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT ck_songs_hall CHECK (hall IN ('tashkent', 'samarkand')),
+    CONSTRAINT ck_songs_language CHECK (language IN ('en', 'ru', 'uz', 'tr', 'de', 'fr', 'other')),
+    CONSTRAINT uk_songs_hall_artist_title UNIQUE (hall, artist, title),
+    INDEX idx_songs_hall (hall, language)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci$$
+
+CREATE TABLE IF NOT EXISTS song_likes (
+    id              CHAR(36) NOT NULL PRIMARY KEY,
+    song_id         CHAR(36) NOT NULL,
+    guest_id        CHAR(36) NOT NULL,
+    created_at      DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    CONSTRAINT uk_song_likes_song_guest UNIQUE (song_id, guest_id),
+    CONSTRAINT fk_song_likes_song FOREIGN KEY (song_id) REFERENCES songs (id) ON DELETE CASCADE,
+    CONSTRAINT fk_song_likes_guest FOREIGN KEY (guest_id) REFERENCES guests (id) ON DELETE CASCADE,
+    INDEX idx_song_likes_guest (guest_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci$$
+
+CREATE TABLE IF NOT EXISTS song_orders (
+    id              CHAR(36) NOT NULL PRIMARY KEY,
+    song_id         CHAR(36) NOT NULL,
+    guest_id        CHAR(36) NOT NULL,
+    status          VARCHAR(10) NOT NULL DEFAULT 'pending',
+    -- In ducats, as it was when ordered (app.playlist.song-price).
+    price           INT NOT NULL,
+    paid_at         DATETIME NULL,
+    played_at       DATETIME NULL,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT ck_song_orders_status CHECK (status IN ('pending', 'paid', 'played', 'cancelled')),
+    CONSTRAINT ck_song_orders_price CHECK (price > 0),
+    CONSTRAINT fk_song_orders_song FOREIGN KEY (song_id) REFERENCES songs (id) ON DELETE CASCADE,
+    CONSTRAINT fk_song_orders_guest FOREIGN KEY (guest_id) REFERENCES guests (id) ON DELETE CASCADE,
+    INDEX idx_song_orders_guest (guest_id, status),
+    INDEX idx_song_orders_song (song_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci$$
+
+-- Likes (and taking a like back) only for a visible song of the guest's
+-- own hall, and only until the hall's likes_close_at — after that the
+-- top two are final. Deletes cascading from songs/guests don't fire
+-- triggers, so removing a song after the freeze still works.
+DROP PROCEDURE IF EXISTS check_song_like$$
+
+CREATE PROCEDURE check_song_like(
+    IN p_song_id CHAR(36),
+    IN p_guest_id CHAR(36),
+    IN p_is_insert TINYINT
+)
+BEGIN
+    DECLARE v_song_hall VARCHAR(20);
+    DECLARE v_song_active TINYINT;
+    DECLARE v_guest_hall VARCHAR(20);
+    DECLARE v_close_at DATETIME;
+
+    SELECT hall, is_active INTO v_song_hall, v_song_active FROM songs WHERE id = p_song_id;
+    SELECT hall INTO v_guest_hall FROM guests WHERE id = p_guest_id;
+    SELECT likes_close_at INTO v_close_at FROM playlist_settings WHERE hall = v_song_hall;
+
+    IF p_is_insert = 1 AND v_song_hall <> v_guest_hall THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This song is for a different hall than the guest is invited to';
+    END IF;
+    IF p_is_insert = 1 AND v_song_active = 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This song is not on the playlist';
+    END IF;
+    IF v_close_at IS NOT NULL AND UTC_TIMESTAMP() + INTERVAL 5 HOUR >= v_close_at THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Likes are closed for tonight';
+    END IF;
+END$$
+
+DROP TRIGGER IF EXISTS trg_song_likes_insert$$
+DROP TRIGGER IF EXISTS trg_song_likes_delete$$
+
+CREATE TRIGGER trg_song_likes_insert
+BEFORE INSERT ON song_likes
+FOR EACH ROW
+BEGIN
+    CALL check_song_like(NEW.song_id, NEW.guest_id, 1);
+END$$
+
+CREATE TRIGGER trg_song_likes_delete
+BEFORE DELETE ON song_likes
+FOR EACH ROW
+BEGIN
+    CALL check_song_like(OLD.song_id, OLD.guest_id, 0);
+END$$
+
+-- An order is for a visible song of the guest's own hall, and a guest has
+-- at most 3 orders waiting for payment at a time (app.playlist.
+-- max-pending-orders — change together).
+DROP TRIGGER IF EXISTS trg_song_orders_insert$$
+
+CREATE TRIGGER trg_song_orders_insert
+BEFORE INSERT ON song_orders
+FOR EACH ROW
+BEGIN
+    DECLARE v_song_hall VARCHAR(20);
+    DECLARE v_song_active TINYINT;
+    DECLARE v_guest_hall VARCHAR(20);
+
+    SELECT hall, is_active INTO v_song_hall, v_song_active FROM songs WHERE id = NEW.song_id;
+    SELECT hall INTO v_guest_hall FROM guests WHERE id = NEW.guest_id;
+
+    IF v_song_hall <> v_guest_hall THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This song is for a different hall than the guest is invited to';
+    END IF;
+    IF v_song_active = 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This song is not on the playlist';
+    END IF;
+    IF NEW.status = 'pending'
+       AND (SELECT COUNT(*) FROM song_orders WHERE guest_id = NEW.guest_id AND status = 'pending') >= 3 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Too many orders waiting for payment';
+    END IF;
+END$$
+
+
+-- =====================================================================
+-- BANK — quests pay out ducats (the wedding's paper money, also what the
+-- DJ takes for a song). Each quest is worth `reward` ducats; a guest's
+-- quest is Open (no upload), Done (an upload that didn't fail conversion)
+-- or Paid (a quest_payouts row). Guests collect at the bank table: a
+-- banker scans the QR code on the guest's quests page, or types their
+-- own 4-digit PIN on the guest's phone, looks at each Done quest's photo
+-- or video and accepts or rejects it (BankService). Accepted ones become
+-- Paid and the banker hands over the coins; a rejected upload is
+-- detached from its quest (kept as a plain upload) and noted in
+-- quest_rejections, so the quest is Open again for a retry. A payout row
+-- is never removed by the guest (retaking the photo doesn't re-open it),
+-- so no quest pays twice.
+-- =====================================================================
+
+ALTER TABLE quests
+    ADD COLUMN IF NOT EXISTS reward INT NOT NULL DEFAULT 5 CHECK (reward BETWEEN 1 AND 1000)$$
+
+-- A banker: like a DJ, a login limited to one hall (SecurityConfig lets
+-- the 'banker' role reach /api/bank/** only). No side, but always a hall.
+DROP PROCEDURE IF EXISTS apply_admins_banker_role_migration$$
+
+CREATE PROCEDURE apply_admins_banker_role_migration()
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM schema_migrations WHERE migration_name = 'admins_banker_role_v1') THEN
+        ALTER TABLE admins DROP CONSTRAINT IF EXISTS ck_admins_role;
+        ALTER TABLE admins ADD CONSTRAINT ck_admins_role CHECK (role IN ('super_admin', 'admin', 'dj', 'banker'));
+        ALTER TABLE admins ADD CONSTRAINT ck_admins_banker_hall CHECK (role <> 'banker' OR (hall IS NOT NULL AND side IS NULL));
+        INSERT INTO schema_migrations (migration_name) VALUES ('admins_banker_role_v1');
+    END IF;
+END$$
+
+CALL apply_admins_banker_role_migration()$$
+DROP PROCEDURE IF EXISTS apply_admins_banker_role_migration$$
+
+-- The PIN a banker (or an admin working the bank table) types on a
+-- guest's phone, as an HMAC keyed off the server secret (BankCodes) —
+-- never the digits themselves. Unique, so a PIN names one person.
+ALTER TABLE admins ADD COLUMN IF NOT EXISTS bank_pin CHAR(64) NULL$$
+
+ALTER TABLE admins ADD UNIQUE INDEX IF NOT EXISTS uk_admins_bank_pin (bank_pin)$$
+
+CREATE TABLE IF NOT EXISTS quest_payouts (
+    id              CHAR(36) NOT NULL PRIMARY KEY,
+    -- NULL once the quest is deleted; quest_title keeps what it was.
+    quest_id        CHAR(36) NULL,
+    quest_title     VARCHAR(150) NOT NULL,
+    guest_id        CHAR(36) NOT NULL,
+    -- Ducats handed over, as the quest's reward was at the time.
+    coins           INT NOT NULL,
+    paid_by         CHAR(36) NULL,
+    method          VARCHAR(10) NOT NULL,
+    -- Shared by the quests paid in one go (one visit to the bank table).
+    batch_id        CHAR(36) NOT NULL,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uk_quest_payouts_guest_quest UNIQUE (guest_id, quest_id),
+    CONSTRAINT ck_quest_payouts_coins CHECK (coins > 0),
+    CONSTRAINT ck_quest_payouts_method CHECK (method IN ('qr', 'pin')),
+    CONSTRAINT fk_quest_payouts_quest FOREIGN KEY (quest_id) REFERENCES quests (id) ON DELETE SET NULL,
+    CONSTRAINT fk_quest_payouts_guest FOREIGN KEY (guest_id) REFERENCES guests (id) ON DELETE CASCADE,
+    CONSTRAINT fk_quest_payouts_paid_by FOREIGN KEY (paid_by) REFERENCES admins (id) ON DELETE SET NULL,
+    INDEX idx_quest_payouts_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci$$
+
+-- Only a Done quest pays: one of the guest's own hall, with an upload of
+-- the guest's for it that didn't fail conversion — last line of defense
+-- behind BankService.
+DROP TRIGGER IF EXISTS trg_quest_payouts_insert$$
+
+CREATE TRIGGER trg_quest_payouts_insert
+BEFORE INSERT ON quest_payouts
+FOR EACH ROW
+BEGIN
+    DECLARE v_quest_hall VARCHAR(20);
+    DECLARE v_guest_hall VARCHAR(20);
+
+    SELECT hall INTO v_quest_hall FROM quests WHERE id = NEW.quest_id;
+    SELECT hall INTO v_guest_hall FROM guests WHERE id = NEW.guest_id;
+
+    IF v_quest_hall IS NULL OR v_quest_hall <> v_guest_hall THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This quest is for a different hall than the guest is invited to';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM guest_media
+                   WHERE guest_id = NEW.guest_id AND quest_id = NEW.quest_id AND processing_status <> 'failed') THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This quest is not done yet';
+    END IF;
+END$$
+
+-- The last time a banker rejected a guest's upload for a quest, so the
+-- quests page can say why it's open again. Informational only: nothing
+-- is blocked by it, and a new upload simply makes the quest Done again.
+CREATE TABLE IF NOT EXISTS quest_rejections (
+    guest_id        CHAR(36) NOT NULL,
+    quest_id        CHAR(36) NOT NULL,
+    rejected_by     CHAR(36) NULL,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (guest_id, quest_id),
+    CONSTRAINT fk_quest_rejections_guest FOREIGN KEY (guest_id) REFERENCES guests (id) ON DELETE CASCADE,
+    CONSTRAINT fk_quest_rejections_quest FOREIGN KEY (quest_id) REFERENCES quests (id) ON DELETE CASCADE,
+    CONSTRAINT fk_quest_rejections_by FOREIGN KEY (rejected_by) REFERENCES admins (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci$$
+
+-- Wrong PINs typed on a guest's phone: after 5 in a row the PIN path is
+-- locked for that guest for 10 minutes (the QR code still works).
+CREATE TABLE IF NOT EXISTS bank_pin_attempts (
+    guest_id        CHAR(36) NOT NULL PRIMARY KEY,
+    failures        INT NOT NULL DEFAULT 0,
+    -- UTC, compared against UTC_TIMESTAMP().
+    locked_until    DATETIME NULL,
+
+    CONSTRAINT fk_bank_pin_attempts_guest FOREIGN KEY (guest_id) REFERENCES guests (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci$$

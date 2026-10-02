@@ -40,7 +40,8 @@ async function request(path, { method = 'GET', body, isForm = false, auth = true
     if (res.status === 401 && auth) {
       clearSession();
       if (!location.pathname.endsWith('login.html')) {
-        location.href = 'login.html';
+        // A banker whose session ran out mid-scan comes back to the bank (bank.js keeps the scanned code).
+        location.href = location.pathname.endsWith('bank.html') ? 'login.html?next=bank.html' : 'login.html';
       }
     }
     throw payload || { status: res.status, error: res.statusText, message: 'Something went wrong.', details: [] };
@@ -275,6 +276,110 @@ export function deleteGalleryImage(imageId) {
 }
 
 // -----------------------------------------------------------------------
+// Quests and bets (admin side, one hall at a time — see activities.js)
+// -----------------------------------------------------------------------
+
+export function listQuests(hall) {
+  return request(`/api/quests${toQueryString({ hall })}`);
+}
+
+export function createQuest(hall, payload) {
+  return request(`/api/quests${toQueryString({ hall })}`, { method: 'POST', body: payload });
+}
+
+export function updateQuest(questId, payload) {
+  return request(`/api/quests/${questId}`, { method: 'PUT', body: payload });
+}
+
+export function deleteQuest(questId) {
+  return request(`/api/quests/${questId}`, { method: 'DELETE' });
+}
+
+export function listBets(hall) {
+  return request(`/api/bets${toQueryString({ hall })}`);
+}
+
+export function createBet(hall, payload) {
+  return request(`/api/bets${toQueryString({ hall })}`, { method: 'POST', body: payload });
+}
+
+export function updateBet(betId, payload) {
+  return request(`/api/bets/${betId}`, { method: 'PUT', body: payload });
+}
+
+export function setBetStatus(betId, status) {
+  return request(`/api/bets/${betId}/status`, { method: 'PATCH', body: { status } });
+}
+
+/** optionId null takes the result back. */
+export function settleBet(betId, optionId) {
+  return request(`/api/bets/${betId}/settle`, { method: 'PATCH', body: { optionId } });
+}
+
+export function deleteBet(betId) {
+  return request(`/api/bets/${betId}`, { method: 'DELETE' });
+}
+
+export function getBetLeaderboard(hall) {
+  return request(`/api/bets/leaderboard${toQueryString({ hall })}`);
+}
+
+// -----------------------------------------------------------------------
+// Playlist — staff side (admins and the hall's DJ — see dj.js)
+// -----------------------------------------------------------------------
+
+export function listSongs(hall) {
+  return request(`/api/playlist/songs${toQueryString({ hall })}`);
+}
+
+export function createSong(hall, payload) {
+  return request(`/api/playlist/songs${toQueryString({ hall })}`, { method: 'POST', body: payload });
+}
+
+export function updateSong(songId, payload) {
+  return request(`/api/playlist/songs/${songId}`, { method: 'PUT', body: payload });
+}
+
+export function deleteSong(songId) {
+  return request(`/api/playlist/songs/${songId}`, { method: 'DELETE' });
+}
+
+export function getPlaylistBoard(hall) {
+  return request(`/api/playlist/board${toQueryString({ hall })}`);
+}
+
+export function setSongOrderStatus(orderId, status) {
+  return request(`/api/playlist/orders/${orderId}/status`, { method: 'PATCH', body: { status } });
+}
+
+/** likesCloseAt: venue wall-clock time, "YYYY-MM-DDTHH:mm" (UTC+5, no offset). */
+export function updatePlaylistSettings(hall, likesCloseAt) {
+  return request(`/api/playlist/settings${toQueryString({ hall })}`, { method: 'PUT', body: { likesCloseAt } });
+}
+
+// -----------------------------------------------------------------------
+// Bank — quest payouts (admins and the hall's bankers — see bank.js)
+// -----------------------------------------------------------------------
+
+export function getBankBoard(hall) {
+  return request(`/api/bank${toQueryString({ hall })}`);
+}
+
+/** The done quests (with their photos/videos) of the guest whose QR code was scanned, to check before paying. */
+export function reviewBankCode(code) {
+  return request('/api/bank/review', { method: 'POST', body: { code } });
+}
+
+/** The banker's verdict for that guest: pays out the `approved` quest ids, re-opens the `rejected` ones. */
+export function payBankCode(code, approved, rejected) {
+  return request('/api/bank/payouts', { method: 'POST', body: { code, approved, rejected } });
+}
+
+export function setBankPin(pin) {
+  return request('/api/bank/pin', { method: 'PUT', body: { pin } });
+}
+
+// -----------------------------------------------------------------------
 // Public invitations (no auth)
 // -----------------------------------------------------------------------
 
@@ -304,4 +409,46 @@ export function publicUploadEndpoints(slug) {
 
 export function deletePublicMedia(slug, mediaId) {
   return request(`/api/public/invitations/${slug}/media/${mediaId}`, { method: 'DELETE', auth: false });
+}
+
+export function getPublicQuests(slug) {
+  return request(`/api/public/invitations/${slug}/quests`, { auth: false });
+}
+
+/** The bank QR code (an SVG) for <img src>; `bust` makes the browser fetch a fresh, unexpired one. */
+export function publicBankQrUrl(slug, bust) {
+  return `/api/public/invitations/${slug}/bank/qr?t=${encodeURIComponent(bust)}`;
+}
+
+/** A banker's PIN typed on the guest's phone, with their verdict: pays out `approved`, re-opens `rejected`. */
+export function payWithBankPin(slug, pin, approved, rejected) {
+  return request(`/api/public/invitations/${slug}/bank/pin`, { method: 'POST', body: { pin, approved, rejected }, auth: false });
+}
+
+export function getPublicBets(slug) {
+  return request(`/api/public/invitations/${slug}/bets`, { auth: false });
+}
+
+export function voteBet(slug, betId, optionId) {
+  return request(`/api/public/invitations/${slug}/bets/${betId}/vote`, { method: 'PUT', body: { optionId }, auth: false });
+}
+
+export function getPublicPlaylist(slug) {
+  return request(`/api/public/invitations/${slug}/playlist`, { auth: false });
+}
+
+export function likeSong(slug, songId) {
+  return request(`/api/public/invitations/${slug}/playlist/songs/${songId}/like`, { method: 'PUT', auth: false });
+}
+
+export function unlikeSong(slug, songId) {
+  return request(`/api/public/invitations/${slug}/playlist/songs/${songId}/like`, { method: 'DELETE', auth: false });
+}
+
+export function orderSong(slug, songId) {
+  return request(`/api/public/invitations/${slug}/playlist/orders`, { method: 'POST', body: { songId }, auth: false });
+}
+
+export function cancelSongOrder(slug, orderId) {
+  return request(`/api/public/invitations/${slug}/playlist/orders/${orderId}`, { method: 'DELETE', auth: false });
 }

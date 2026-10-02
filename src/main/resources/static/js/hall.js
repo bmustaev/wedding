@@ -4,14 +4,15 @@
 // since this isn't a high-frequency interaction and the server is the
 // only source of truth for capacity/side rules anyway.
 import * as api from './api.js';
-import { requireAuth, getRole, getUsername, getSide, isSuperAdmin, logout, HALL_SIDES, getAccessibleHalls } from './auth.js';
+import { requireAuth, getSide, isSuperAdmin, HALL_SIDES, getAccessibleHalls } from './auth.js';
 import { showError, clearBanner, escapeHtml, copyToClipboard, ICON_COPY_LINK, ICON_CHECK, ICON_ADD_PERSON } from './ui.js';
 import { initGuestEditor, openGuestEditor } from './guest-editor.js';
-import { applyStaticTranslations, initLanguageSwitcher, t } from './admin-i18n.js';
+import { applyStaticTranslations, t } from './admin-i18n.js';
+import { initAdminNav } from './nav.js';
 
 requireAuth();
 applyStaticTranslations();
-initLanguageSwitcher(document.getElementById('lang-switcher'));
+initAdminNav();
 document.getElementById('unassigned-tray-body').dataset.emptyLabel = t('everyone-seated');
 
 const callerSide = getSide(); // 'BRIDE' | 'GROOM' | null (null shouldn't reach this page in practice)
@@ -55,23 +56,6 @@ markActiveHall();
 /** Whether this admin works the given side's tables in the current hall (super admin: every side the hall has). */
 function worksSide(side) {
   return HALL_SIDES[currentHall].includes(side) && (isSuperAdmin() || callerSide === side);
-}
-
-// -----------------------------------------------------------------------
-// Sidebar
-// -----------------------------------------------------------------------
-
-document.getElementById('sidebar-role').textContent =
-  getRole() === 'SUPER_ADMIN' ? t('sidebar-role-super') : t('sidebar-role-admin');
-document.getElementById('sidebar-username').textContent = getUsername() || '';
-document.getElementById('logout-btn').addEventListener('click', logout);
-document.getElementById('nav-dashboard').addEventListener('click', () => { location.href = 'dashboard.html'; });
-document.getElementById('nav-media').addEventListener('click', () => { location.href = 'media-admin.html'; });
-
-if (isSuperAdmin()) {
-  const link = document.getElementById('nav-super-admin');
-  link.hidden = false;
-  link.addEventListener('click', () => { location.href = 'super-admin.html'; });
 }
 
 // -----------------------------------------------------------------------

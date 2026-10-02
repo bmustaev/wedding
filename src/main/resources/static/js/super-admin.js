@@ -1,35 +1,30 @@
 // super-admin.js — admin management + read-only drill-down into any admin's guest list.
 import * as api from './api.js';
-import { requireSuperAdmin, getUsername, logout, HALL_SIDES } from './auth.js';
+import { requireSuperAdmin, HALL_SIDES } from './auth.js';
 import {
   showError, clearBanner, setLoading, setEmpty,
   renderPager, openModal, closeModal, escapeHtml,
 } from './ui.js';
-import { applyStaticTranslations, initLanguageSwitcher, t } from './admin-i18n.js';
+import { applyStaticTranslations, t } from './admin-i18n.js';
+import { initAdminNav } from './nav.js';
 
 requireSuperAdmin();
 applyStaticTranslations();
-initLanguageSwitcher(document.getElementById('lang-switcher'));
-
-document.getElementById('sidebar-username').textContent = getUsername() || '';
-document.getElementById('logout-btn').addEventListener('click', logout);
-document.getElementById('nav-back').addEventListener('click', () => { location.href = 'dashboard.html'; });
-document.getElementById('nav-media').addEventListener('click', () => { location.href = 'media-admin.html'; });
+initAdminNav();
 
 const panels = document.querySelectorAll('section[data-panel]');
 function showPanel(name) {
   panels.forEach((p) => p.classList.toggle('active', p.dataset.panel === name));
 }
 
-// Top-level sidebar destinations (not the read-only admin-guests drill-down,
-// which is only ever opened programmatically from the admins list).
-document.querySelectorAll('.sidebar-nav [data-target]').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.sidebar-nav [data-target]').forEach((b) => b.classList.remove('active'));
-    btn.classList.add('active');
-    showPanel(btn.dataset.target);
-  });
-});
+// Top-level destinations come from the URL hash (#admins / #gallery), set by
+// the nav links — not the read-only admin-guests drill-down, which is only
+// ever opened programmatically from the admins list.
+function showPanelFromHash() {
+  showPanel(location.hash === '#gallery' ? 'gallery' : 'admins');
+}
+window.addEventListener('hashchange', showPanelFromHash);
+showPanelFromHash();
 
 // -----------------------------------------------------------------------
 // Admin list
@@ -58,7 +53,7 @@ function renderAdmins(admins) {
 
   const rows = admins.map((a) => `
     <tr data-id="${a.id}">
-      <td>${escapeHtml(a.username)} ${a.role === 'SUPER_ADMIN' ? `<span class="badge badge-super">${t('badge-super-admin')}</span>` : ''}</td>
+      <td>${escapeHtml(a.username)} ${a.role === 'SUPER_ADMIN' ? `<span class="badge badge-super">${t('badge-super-admin')}</span>` : ''}${a.role === 'DJ' ? `<span class="badge badge-super">${t('badge-dj')}</span>` : ''}${a.role === 'BANKER' ? `<span class="badge badge-super">${t('badge-banker')}</span>` : ''}</td>
       <td>${a.side ? escapeHtml(a.side) : '—'}</td>
       <td>${a.role === 'SUPER_ADMIN' ? '—' : a.hall ? t('admin-hall-only-' + a.hall) : t('admin-hall-all-short')}</td>
       <td>${a.guestCount}</td>
@@ -99,14 +94,23 @@ function renderAdmins(admins) {
 }
 
 // Samarkand is the groom side's alone — a bride-side admin can't be limited to it.
+// A DJ or banker has no side but always exactly one hall (their playlist's / bank table's).
+const adminRoleSelect = document.getElementById('admin-role');
+const isHallStaffRole = (role) => role === 'DJ' || role === 'BANKER';
 const adminSideSelect = document.getElementById('admin-side');
 const adminHallSelect = document.getElementById('admin-hall');
 function syncAdminHallOptions() {
+  const hallStaff = isHallStaffRole(adminRoleSelect.value);
+  document.getElementById('admin-side-field').hidden = hallStaff;
+  document.getElementById('admin-hall-hint').hidden = hallStaff;
   [...adminHallSelect.options].forEach((opt) => {
-    opt.disabled = !!opt.value && !HALL_SIDES[opt.value].includes(adminSideSelect.value);
+    opt.disabled = hallStaff ? !opt.value : !!opt.value && !HALL_SIDES[opt.value].includes(adminSideSelect.value);
   });
-  if (adminHallSelect.selectedOptions[0]?.disabled) adminHallSelect.value = '';
+  if (adminHallSelect.selectedOptions[0]?.disabled) {
+    adminHallSelect.value = [...adminHallSelect.options].find((opt) => !opt.disabled).value;
+  }
 }
+adminRoleSelect.addEventListener('change', syncAdminHallOptions);
 adminSideSelect.addEventListener('change', syncAdminHallOptions);
 
 document.getElementById('add-admin-btn').addEventListener('click', () => {
@@ -123,11 +127,16 @@ document.getElementById('admin-save-btn').addEventListener('click', async () => 
   clearBanner(errorBanner);
   const username = document.getElementById('admin-username').value.trim();
   const password = document.getElementById('admin-password').value;
-  const side = adminSideSelect.value;
+  const role = adminRoleSelect.value;
+  const side = isHallStaffRole(role) ? null : adminSideSelect.value;
   const hall = adminHallSelect.value || null;
+  if (isHallStaffRole(role) && !hall) {
+    showError(errorBanner, { message: t('admin-hall-required') });
+    return;
+  }
 
   try {
-    await api.createAdmin({ username, password, side, hall });
+    await api.createAdmin({ username, password, side, hall, role });
     closeModal(document.getElementById('admin-modal-backdrop'));
     loadAdmins();
   } catch (err) {

@@ -11,7 +11,8 @@ import java.util.UUID;
  * expiring links (API.md, "Media files") and are null until
  * {@code status} is READY. While PROCESSING, the uploader also gets either
  * {@code processingPercent} (converting now) or {@code queuePosition}
- * (0 = next in line).
+ * (0 = next in line). {@code questId}/{@code questTitle}: the quest this
+ * upload completes, if any.
  */
 public record MediaResponse(
         UUID id,
@@ -33,5 +34,7 @@ public record MediaResponse(
         boolean own,
         String fileUrl,
         String thumbUrl,
-        String originalUrl
+        String originalUrl,
+        UUID questId,
+        String questTitle
 ) {}

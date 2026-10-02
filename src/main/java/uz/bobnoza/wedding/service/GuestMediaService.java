@@ -11,6 +11,7 @@ import uz.bobnoza.wedding.entity.Hall;
 import uz.bobnoza.wedding.entity.MediaType;
 import uz.bobnoza.wedding.entity.MediaVisibility;
 import uz.bobnoza.wedding.entity.ProcessingStatus;
+import uz.bobnoza.wedding.entity.Quest;
 import uz.bobnoza.wedding.entity.SeatingTable;
 import uz.bobnoza.wedding.entity.TableSide;
 import uz.bobnoza.wedding.exception.MediaLimitExceededException;
@@ -177,10 +178,12 @@ public class GuestMediaService {
      * file's real content decides everything: a "photo" libvips can't read,
      * or a video longer than the limit, is refused here even if the browser
      * said otherwise. On success the file has been moved into storage.
+     * {@code quest} (checked by the caller, see QuestService) marks the upload
+     * as that quest's answer; null for an ordinary upload.
      */
     @Transactional
-    public MediaResponse ingestUpload(UUID guestId, MediaType mediaType, MediaVisibility visibility, Path file,
-                                      String originalFilename, long sizeBytes) {
+    public MediaResponse ingestUpload(UUID guestId, MediaType mediaType, MediaVisibility visibility, Quest quest,
+                                      Path file, String originalFilename, long sizeBytes) {
         Guest guest = guestRepository.findByIdAndDeletedFalse(guestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Guest not found: " + guestId));
         requireRoomFor(guestId, mediaType, 0);
@@ -228,11 +231,13 @@ public class GuestMediaService {
                 .heightPx(height)
                 .durationSeconds(durationSeconds)
                 .visibility(visibility)
+                .quest(quest)
                 .build();
         try {
             media = guestMediaRepository.saveAndFlush(media);
         } catch (RuntimeException e) {
-            storageService.delete(storageKey); // e.g. trg_guest_media_limit lost a race — don't orphan the file
+            // e.g. trg_guest_media_limit or uk_guest_media_quest lost a race — don't orphan the file
+            storageService.delete(storageKey);
             throw e;
         }
         processingQueue.enqueue(media.getId(), mediaType);
@@ -263,6 +268,16 @@ public class GuestMediaService {
                         .map(key -> new MediaFile(key, "image/jpeg", null));
             };
         });
+    }
+
+    /** One of the guest's own items as they see it (quest cards on the quests page). */
+    MediaResponse toOwnResponse(GuestMedia media) {
+        return toResponse(media, Audience.OWNER, media.getGuest().getId());
+    }
+
+    /** A guest's item as staff see it — a banker reviewing a quest upload (BankService checked the hall). */
+    MediaResponse toStaffResponse(GuestMedia media) {
+        return toResponse(media, Audience.ADMIN, null);
     }
 
     /** {@code downloadName} is set only for originals, which are served as an attachment. */
@@ -316,6 +331,7 @@ public class GuestMediaService {
                 ? processingQueue.progressOf(media.getId(), media.getMediaType())
                 : new MediaProcessingQueue.Progress(null, null);
         SeatingTable table = audience == Audience.OWNER ? null : guest.getTable();
+        Quest quest = media.getQuest();
 
         return new MediaResponse(
                 media.getId(),
@@ -337,6 +353,8 @@ public class GuestMediaService {
                 own,
                 ready ? urlSigner.url(media.getId(), Variant.DISPLAY) : null,
                 ready ? urlSigner.url(media.getId(), Variant.THUMB) : null,
-                admin ? urlSigner.url(media.getId(), Variant.ORIGINAL) : null);
+                admin ? urlSigner.url(media.getId(), Variant.ORIGINAL) : null,
+                quest != null ? quest.getId() : null,
+                quest != null ? quest.getTitle() : null);
     }
 }

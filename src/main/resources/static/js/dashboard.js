@@ -1,26 +1,18 @@
 // dashboard.js — admin dashboard: guest CRUD, seating, bulk import.
 import * as api from './api.js';
-import { requireAuth, getRole, getUsername, isSuperAdmin, logout, getAccessibleHalls, getHall } from './auth.js';
+import { requireAuth, getAccessibleHalls, getHall } from './auth.js';
 import {
   showError, clearBanner, setLoading, setEmpty,
   renderPager, escapeHtml, copyToClipboard,
   ICON_COPY_LINK, ICON_EDIT, ICON_CHECK,
 } from './ui.js';
 import { initGuestEditor, openGuestEditor } from './guest-editor.js';
-import { applyStaticTranslations, initLanguageSwitcher, t } from './admin-i18n.js';
+import { applyStaticTranslations, t } from './admin-i18n.js';
+import { initAdminNav } from './nav.js';
 
 requireAuth();
 applyStaticTranslations();
-initLanguageSwitcher(document.getElementById('lang-switcher'));
-
-// -----------------------------------------------------------------------
-// Sidebar / nav
-// -----------------------------------------------------------------------
-
-document.getElementById('sidebar-role').textContent =
-  getRole() === 'SUPER_ADMIN' ? t('sidebar-role-super') : t('sidebar-role-admin');
-document.getElementById('sidebar-username').textContent = getUsername() || '';
-document.getElementById('logout-btn').addEventListener('click', logout);
+initAdminNav();
 
 // A hall admin's list isn't just their own — it's every guest their side has in their hall.
 const ownHall = getHall();
@@ -29,25 +21,14 @@ if (ownHall) {
     t('guests-subtitle-hall', { hall: t('hall-name-' + ownHall) });
 }
 
-if (isSuperAdmin()) {
-  const link = document.getElementById('nav-super-admin');
-  link.hidden = false;
-  link.addEventListener('click', () => { location.href = 'super-admin.html'; });
-}
-
-document.getElementById('nav-hall').addEventListener('click', () => { location.href = 'hall.html'; });
-document.getElementById('nav-media').addEventListener('click', () => { location.href = 'media-admin.html'; });
-
+// The panel comes from the URL hash (#guests / #import), which the nav links set.
 const panels = document.querySelectorAll('section[data-panel]');
-const navButtons = document.querySelectorAll('.sidebar-nav button[data-target]');
-navButtons.forEach((btn) => {
-  btn.addEventListener('click', () => {
-    navButtons.forEach((b) => b.classList.remove('active'));
-    btn.classList.add('active');
-    panels.forEach((p) => p.classList.toggle('active', p.dataset.panel === btn.dataset.target));
-    if (btn.dataset.target === 'import') loadImportHistory();
-  });
-});
+function showPanelFromHash() {
+  const name = location.hash === '#import' ? 'import' : 'guests';
+  panels.forEach((p) => p.classList.toggle('active', p.dataset.panel === name));
+  if (name === 'import') loadImportHistory();
+}
+window.addEventListener('hashchange', showPanelFromHash);
 
 // -----------------------------------------------------------------------
 // Guests list
@@ -206,3 +187,4 @@ async function loadImportHistory() {
 
 initGuestEditor({ onSaved: () => loadGuests(guestsPage) });
 loadGuests(0);
+showPanelFromHash();

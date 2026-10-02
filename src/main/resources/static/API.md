@@ -18,6 +18,8 @@ Get a token from `POST /api/auth/login`. Tokens expire after `app.jwt.expiration
 
 Endpoints under `/api/super-admin/**` additionally require the token to belong to a `super_admin` account — a regular admin's valid token is rejected with `403` before any controller code runs.
 
+A **DJ** token (role `DJ`) reaches only `/api/playlist/**` (section 10), and a **banker** token (role `BANKER`) only `/api/bank/**` (section 11) — every other authenticated endpoint answers them with `403`, also before any controller code runs.
+
 ## Error format
 
 Every error follows the same shape:
@@ -41,6 +43,7 @@ Every error follows the same shape:
 | 409 | A business rule was violated — table doesn't have enough seats, or the guest already hit their photo/video cap |
 | 413 | Uploaded file exceeds the size limit |
 | 415 | A media upload isn't a photo/video format the server accepts |
+| 429 | Too many wrong bank PINs on one guest's phone (see "Bank errors") |
 | 507 | The media disk is too full to accept new uploads |
 | 500 | Unexpected server error |
 
@@ -55,6 +58,17 @@ Rejected media uploads (section 3a) use a machine-readable code in `error` inste
 | 415 | `UNSUPPORTED_FORMAT` | Photo isn't JPEG/HEIC/PNG/WebP, or video isn't MOV/MP4 — decided by the file's content, never its name or `Content-Type` |
 | 507 | `STORAGE_FULL` | Free disk space would drop below `app.media.min-free-disk` (30 GB) |
 | 409 | `Conflict` | Photo/video cap reached (15 / 4, counting uploads in progress) |
+
+### Bank errors
+
+The bank table (section 11) does the same, for the guest's quests page (`js/guest-i18n.js`) and the banker's page (`js/admin-i18n.js`).
+
+| Status | `error` | When |
+|---|---|---|
+| 400 | `CODE_INVALID` | The scanned payout code is malformed, forged or expired (codes live 15 minutes; the guest page keeps showing a fresh one) |
+| 400 | `WRONG_PIN` | No active banker/admin of the guest's hall has this PIN. Counts towards the lock |
+| 429 | `PIN_LOCKED` | 5 wrong PINs in a row on this guest's phone — the PIN path is locked for 10 minutes (the QR code still works) |
+| 409 | `PIN_TAKEN` | Setting a PIN someone else already uses |
 
 ---
 
@@ -84,9 +98,9 @@ Rejected media uploads (section 3a) use a machine-readable code in `error` inste
 }
 ```
 
-`side` is `"BRIDE"` or `"GROOM"` for a regular admin, `null` for a super admin. It's not read from a JWT claim — every request re-derives it fresh from the admin's row via `AdminPrincipal.getSide()`, so a side change takes effect on the very next request without needing a new token.
+`role` is `"SUPER_ADMIN"`, `"ADMIN"`, `"DJ"` or `"BANKER"`. `side` is `"BRIDE"` or `"GROOM"` for a regular admin, `null` for a super admin, a DJ and a banker. It's not read from a JWT claim — every request re-derives it fresh from the admin's row via `AdminPrincipal.getSide()`, so a side change takes effect on the very next request without needing a new token.
 
-`hall` is set only for a **hall admin** (e.g. `sam_hall`: `"GROOM"`, `"SAMARKAND"`) — one limited to that single hall. Everywhere else in this API, a hall admin behaves as if the other hall didn't exist (`404`), an omitted `hall` parameter means their own hall instead of `TASHKENT`, and their "own guests" are **every guest their side has in that hall**, whoever added them (see section 2). Like `side`, it's re-derived from the admin's row on every request.
+`hall` is set only for a **hall admin** (e.g. `sam_hall`: `"GROOM"`, `"SAMARKAND"`) — one limited to that single hall. Everywhere else in this API, a hall admin behaves as if the other hall didn't exist (`404`), an omitted `hall` parameter means their own hall instead of `TASHKENT`, and their "own guests" are **every guest their side has in that hall**, whoever added them (see section 2). Like `side`, it's re-derived from the admin's row on every request. A DJ always has a `hall`: the one whose playlist they work; so does a banker: the one whose bank table they work.
 
 **Response `401`** (wrong password or disabled account):
 ```json
@@ -322,7 +336,9 @@ Every upload is kept as the untouched **original** and converted server-side int
   "own": false,
   "fileUrl": "/api/public/media/c3d4e5f6-.../display?exp=1790942400&sig=…",
   "thumbUrl": "/api/public/media/c3d4e5f6-.../thumb?exp=1790942400&sig=…",
-  "originalUrl": "/api/public/media/c3d4e5f6-.../original?exp=1790942400&sig=…"
+  "originalUrl": "/api/public/media/c3d4e5f6-.../original?exp=1790942400&sig=…",
+  "questId": null,
+  "questTitle": null
 }
 ```
 
@@ -331,6 +347,7 @@ Every upload is kept as the untouched **original** and converted server-side int
 - While `PROCESSING`, the uploader and admins get `processingPercent` (video being converted now) or `queuePosition` (waiting; `0` = next).
 - The `*Url`s are signed, expiring links — see section 7a. `originalUrl`, `guestId` and `processingError` are admin-only.
 - `widthPx`/`heightPx` are as displayed (portrait phone video is taller than wide).
+- `questId`/`questTitle`: set when the photo is a guest's answer to a quest (section 9); `null` otherwise, and again once the quest is deleted.
 
 ### `GET /api/guests/{guestId}/media`
 
@@ -398,7 +415,7 @@ Paths below are for a guest (`/api/public/invitations/{slug}/media`); the admin 
 ```json
 { "mediaType": "VIDEO", "filename": "IMG_0042.MOV", "sizeBytes": 187654321, "durationSeconds": 42.4, "visibility": "PRIVATE" }
 ```
-`visibility` (optional, `PUBLIC` | `PRIVATE`) is who besides the admins sees the finished file — absent means photos `PUBLIC`, videos `PRIVATE`. `durationSeconds` (videos, optional) is what the browser measured — over the limit fails here, before any bytes are sent. Also checked here: file size, the guest's cap (counting other uploads in progress), and free disk space.
+`visibility` (optional, `PUBLIC` | `PRIVATE`) is who besides the admins sees the finished file — absent means photos `PUBLIC`, videos `PRIVATE`. `questId` (optional, photos only) makes the photo that quest's answer (section 9): `404` if the quest isn't active in the guest's hall, `409` if the guest already has a photo for it, `400` for a video — checked again on complete. `durationSeconds` (videos, optional) is what the browser measured — over the limit fails here, before any bytes are sent. Also checked here: file size, the guest's cap (counting other uploads in progress), and free disk space.
 
 **Response `201`:**
 ```json
@@ -664,12 +681,17 @@ Requires a `super_admin` token. A regular admin's token gets a blanket `403` on 
   "username": "sam_hall",
   "password": "a-real-password-here",
   "side": "GROOM",
-  "hall": "SAMARKAND"
+  "hall": "SAMARKAND",
+  "role": "ADMIN"
 }
 ```
-(`username`: 3–64 chars; `password`: 8–128 chars, validated but **not** hashed client-side — the server hashes it. `side`: `"BRIDE"` or `"GROOM"`, required — `400` on anything else. `hall`: optional — `"TASHKENT"` or `"SAMARKAND"` makes a hall admin (see section 1), omitted/`null` gives access to every hall of that side; `400` for an unknown hall or one the side doesn't have, e.g. a bride-side Samarkand admin.)
+(`username`: 3–64 chars; `password`: 8–128 chars, validated but **not** hashed client-side — the server hashes it. `role`: `"ADMIN"` (default when absent), `"DJ"` or `"BANKER"`. For an admin, `side`: `"BRIDE"` or `"GROOM"`, required — `400` on anything else — and `hall`: optional — `"TASHKENT"` or `"SAMARKAND"` makes a hall admin (see section 1), omitted/`null` gives access to every hall of that side; `400` for an unknown hall or one the side doesn't have, e.g. a bride-side Samarkand admin. For a DJ or a banker, `side` is ignored and `hall` is required.)
 
-**Response `201`:** an `AdminSummaryResponse`. New admins are always created with role `ADMIN` — only a database operator can create another `SUPER_ADMIN`.
+```json
+{ "username": "dj_tashkent", "password": "a-real-password-here", "role": "DJ", "hall": "TASHKENT" }
+```
+
+**Response `201`:** an `AdminSummaryResponse`. Only `ADMIN`, `DJ` and `BANKER` accounts can be created here — only a database operator can create another `SUPER_ADMIN`.
 
 ### `PATCH /api/super-admin/admins/{adminId}/active`
 
@@ -842,6 +864,238 @@ Streams the photo's bytes with its real `Content-Type` (e.g. `image/jpeg`) — t
 
 ---
 
+## 9. Quests and bets
+
+Games for the guests of one hall. Both are **hall-wide content**: every admin who can open a hall (same rule as its seating map — section 4) manages that hall's quests and bets, whoever created them; a hall the caller can't open is a `404`, as is any quest or bet in it. Admin routes take `?hall=TASHKENT|SAMARKAND` like `GET /api/seating/hall` (absent = the caller's default hall). Guests reach them through their slug (section 7) and only ever see their own hall's.
+
+### Quests — photo challenges
+
+A guest completes a quest by uploading a photo for it: a normal chunked upload (section 3a) with `questId` in the start request. The photo counts towards the guest's 15-photo cap and follows the usual visibility rules (so by default it's in the hall's feed). One photo per quest and guest — deleting it (`DELETE …/media/{mediaId}`) re-opens the quest, unless it's already paid. Deleting a quest keeps its photos as ordinary photos (and its payouts). The database enforces photo-only, same-hall, one-per-guest (`trg_guest_media_quest_*`, `uk_guest_media_quest`).
+
+Each quest is worth `reward` ducats, collected at the bank table (section 11). For a guest a quest is **`OPEN`** (no photo, or its conversion failed), **`DONE`** (photo in — ducats waiting at the bank) or **`PAID`** (collected). `PAID` is final: retaking the photo doesn't re-open it, and changing `reward` doesn't touch what was already paid.
+
+#### `QuestResponse` (admins)
+
+```json
+{ "id": "5e1f…", "hall": "TASHKENT", "title": "Selfie with the groom", "description": "Both of you smiling", "active": true,
+  "reward": 5, "completedCount": 12, "paidCount": 9, "createdAt": "2026-10-01T09:00:00Z" }
+```
+`completedCount`: guests in the hall with a photo for it (failed conversions don't count); `paidCount`: guests the bank paid it to. Inactive quests are hidden from guests but keep their photos.
+
+#### `GET /api/quests?hall=` · `POST /api/quests?hall=` · `PUT /api/quests/{questId}` · `DELETE /api/quests/{questId}`
+
+Create/update body (`active` optional: `true` on create, unchanged on update; `reward` likewise optional: `5` on create, unchanged on update):
+```json
+{ "title": "Selfie with the groom", "description": "Both of you smiling", "active": true, "reward": 5 }
+```
+`title` 1–150 chars, `description` ≤ 600, `reward` 1–1000. **Responses:** `QuestResponse[]`, `201 QuestResponse`, `200 QuestResponse`, `204`.
+
+#### `GET /api/public/invitations/{slug}/quests`
+
+The guest's ducats and the hall's **active** quests, oldest first, each with its `state`, the guest's own photo for it (`MediaResponse` as in `GET …/media`, or `null`) and, once paid, `paidAt` (`reward` is then what was paid):
+```json
+{
+  "wallet": { "earned": 12, "collected": 7, "toCollect": 5 },
+  "quests": [
+    { "id": "5e1f…", "title": "Selfie with the groom", "description": "Both of you smiling", "reward": 7,
+      "state": "PAID", "photo": { "id": "8e71…", "status": "READY", … }, "paidAt": "2026-10-02T15:33:00Z" },
+    { "id": "9a02…", "title": "The cake before it's cut", "description": null, "reward": 5,
+      "state": "DONE", "photo": { … }, "paidAt": null }
+  ]
+}
+```
+`wallet` in ducats: `earned` = `collected` + `toCollect`. `collected` counts every payout, also for quests hidden or deleted since; `toCollect` = the `DONE` quests.
+
+### Bets — predictions, no money involved
+
+A bet is a question with 2–10 options. Status: `OPEN` (guests pick, and may change their pick) → `CLOSED` (no more picks) → `SETTLED` (an admin marked the right option; every right pick scores a point on the hall's leaderboard). Settling closes the bet; reopening or taking the result back un-settles it. The database refuses picks on a bet that isn't open, from another hall, or for an option of another bet (`trg_bet_votes_*`, composite FK).
+
+#### `BetResponse`
+
+```json
+{
+  "id": "7a0c…", "hall": "TASHKENT", "question": "Who cries first?", "status": "SETTLED",
+  "options": [
+    { "id": "e1…", "label": "The bride", "votes": 14, "correct": true },
+    { "id": "e2…", "label": "The groom", "votes": 9, "correct": false }
+  ],
+  "totalVotes": 23, "myOptionId": "e2…", "createdAt": "2026-10-01T09:00:00Z"
+}
+```
+- `votes` per option: always for admins; for guests `null` while the bet is `OPEN` (so early picks don't steer later ones), filled once it's closed. `totalVotes` is always shown.
+- `myOptionId`: the asking guest's pick (`null` if none, and always for admins).
+
+#### Admin routes
+
+| Route | Body | Response |
+|---|---|---|
+| `GET /api/bets?hall=` | — | `BetResponse[]`, oldest first |
+| `POST /api/bets?hall=` | `{ "question": "Who cries first?", "options": ["The bride", "The groom"] }` | `201 BetResponse` (`OPEN`) |
+| `PUT /api/bets/{betId}` | same as create | `200 BetResponse` |
+| `PATCH /api/bets/{betId}/status` | `{ "status": "OPEN" }` or `"CLOSED"` | `200 BetResponse` |
+| `PATCH /api/bets/{betId}/settle` | `{ "optionId": "e1…" }` — `null` takes the result back (→ `CLOSED`) | `200 BetResponse` |
+| `DELETE /api/bets/{betId}` | — | `204` (picks go with it) |
+| `GET /api/bets/leaderboard?hall=` | — | `LeaderboardResponse`, everyone with a right pick |
+
+`PUT` renames the question and the options in order; adding or removing options is only allowed before anyone picked (`409` after). An `optionId` of another bet is a `404`.
+
+#### `LeaderboardResponse`
+
+```json
+{ "settledBets": 3, "entries": [ { "rank": 1, "guestName": "The Miller Family", "correct": 3, "own": false } ], "me": null }
+```
+Guests with at least one right pick, best first; ties share a rank (1, 2, 2, 4). For guests, `entries` is the top 10, `own` marks their line and `me` is their own line (also when it's below the top 10; `null` without a right pick). Admins get everyone and `me: null`.
+
+#### `GET /api/public/invitations/{slug}/bets`
+
+Every bet in the guest's hall plus the leaderboard, in one call: `{ "bets": BetResponse[], "leaderboard": LeaderboardResponse }`.
+
+#### `PUT /api/public/invitations/{slug}/bets/{betId}/vote`
+
+```json
+{ "optionId": "e2…" }
+```
+Picks, or changes the pick. **Response `200`:** the `BetResponse` (counts still hidden). `404` for a bet in another hall or an option of another bet, `409` once the bet isn't `OPEN`.
+
+---
+
+## 10. Playlist
+
+The band's songs per hall, split by language and artist. **Hall-wide content** like quests and bets: every admin who can open the hall manages it, and so does that hall's **DJ** login (role `DJ`, created in section 6) — the only API a DJ can call. Inaccessible halls and their songs/orders are `404`. Staff routes take `?hall=` as in section 9 (absent = the DJ's own hall, or the caller's default hall).
+
+- **Likes.** One per guest and song, until the hall's *likes close* time — 20:50 on each evening by default (`playlist_settings`, venue wall-clock time, UTC+5). The two most-liked songs at that moment are played after it; likes (and taking one back) are refused from then on, so the pair is final. Ties go to the song that got there first. Hidden songs and deleted guests' likes don't count.
+- **Orders.** A guest buys a song for `app.playlist.song-price` (15) ducats. Ducats are paper props, so nothing is charged by the API: the order is `PENDING` until the guest pays the DJ in person, who marks it `PAID` (the band's queue) and later `PLAYED`; `CANCELLED` if it never happens. At most `app.playlist.max-pending-orders` (3) unpaid orders per guest.
+
+The database enforces same hall, visible song, the freeze and the pending cap (`trg_song_likes_*`, `trg_song_orders_insert`, `uk_song_likes_song_guest`).
+
+#### `SongResponse`
+
+```json
+{ "id": "53a0…", "artist": "AC/DC", "title": "Back in Black", "language": "EN", "active": true, "likeCount": 4, "likedByMe": true }
+```
+`language`: `EN`, `RU`, `UZ`, `TR`, `DE`, `FR` or `OTHER`. `likedByMe`: the asking guest's like (`null` for staff). Hidden songs (`active: false`) are left out for guests.
+
+#### `SongOrderResponse`
+
+```json
+{ "id": "c41d…", "songId": "53a0…", "artist": "Quest Pistols", "title": "Белая стрекоза", "status": "PAID", "price": 15,
+  "guestName": "Jane Doe", "tableLabel": "1D", "createdAt": "2026-10-02T15:10:00Z", "paidAt": "2026-10-02T15:14:00Z", "playedAt": null }
+```
+`guestName` / `tableLabel` (so the DJ can find the guest) are `null` for guests. `paidAt` / `playedAt` follow the status.
+
+#### Staff routes (admins and the hall's DJ)
+
+| Route | Body | Response |
+|---|---|---|
+| `GET /api/playlist/songs?hall=` | — | `SongResponse[]`, hidden ones too |
+| `POST /api/playlist/songs?hall=` | `{ "artist": "AC/DC", "title": "Back in Black", "language": "EN", "active": true }` | `201 SongResponse` |
+| `PUT /api/playlist/songs/{songId}` | same as create (`active` absent = unchanged) | `200 SongResponse` |
+| `DELETE /api/playlist/songs/{songId}` | — | `204` (its likes and orders go with it — hide it to keep them) |
+| `GET /api/playlist/board?hall=` | — | `PlaylistBoardResponse` |
+| `PATCH /api/playlist/orders/{orderId}/status` | `{ "status": "PAID" }` — any of `PENDING`, `PAID`, `PLAYED`, `CANCELLED`, forwards or back | `200 SongOrderResponse` |
+| `PUT /api/playlist/settings?hall=` | `{ "likesCloseAt": "2026-10-02T20:50" }` — venue time, no offset; later than now re-opens likes | `200 PlaylistBoardResponse` |
+
+`artist` ≤ 150, `title` ≤ 200 chars; the same artist + title twice in a hall is a `409` (case-insensitive).
+
+```json
+{
+  "hall": "TASHKENT", "songPrice": 15,
+  "likesCloseAt": "2026-10-02T20:50:00+05:00", "likesOpen": true,
+  "tonight": [ SongResponse, SongResponse ],
+  "ranking": [ SongResponse, … ],
+  "orders": [ SongOrderResponse, … ]
+}
+```
+`tonight`: the (up to) two most-liked visible songs — still moving while `likesOpen`, final after. `ranking`: the top 10 by likes (hidden songs included, marked `active: false`). `orders`: every order in the hall, oldest first.
+
+```bash
+curl -X PATCH "http://localhost:8080/api/playlist/orders/$ORDER_ID/status" \
+  -H "Authorization: Bearer $DJ_TOKEN" -H "Content-Type: application/json" -d '{"status":"PAID"}'
+```
+
+#### `GET /api/public/invitations/{slug}/playlist`
+
+```json
+{
+  "songPrice": 15, "maxPendingOrders": 3,
+  "likesCloseAt": "2026-10-02T20:50:00+05:00", "likesOpen": true,
+  "tonight": [ SongResponse, … ],
+  "songs": [ SongResponse, … ],
+  "myOrders": [ SongOrderResponse, … ]
+}
+```
+The guest's hall's visible songs with their likes, the current top two, and the guest's own orders (newest first).
+
+#### `PUT` / `DELETE /api/public/invitations/{slug}/playlist/songs/{songId}/like`
+
+Likes / takes the like back (repeating either is a no-op). **Response `200`:** the `SongResponse`. `404` for a song of another hall or a hidden one, `409` once likes are closed.
+
+#### `POST /api/public/invitations/{slug}/playlist/orders`
+
+```json
+{ "songId": "53a0…" }
+```
+**Response `201`:** a `PENDING` `SongOrderResponse` — the guest now pays the DJ. Ordering a song that's already waiting for payment returns that order. `404` as for likes; `409` with more than 3 unpaid orders.
+
+#### `DELETE /api/public/invitations/{slug}/playlist/orders/{orderId}`
+
+Cancels the guest's own order while it's still `PENDING`. **Response `200`:** the `CANCELLED` order. `404` for someone else's order, `409` once paid (the DJ can still cancel it).
+
+---
+
+## 11. Bank — quest payouts
+
+Where guests turn `DONE` quests (section 9) into ducats — the same paper coins the DJ takes for a song. A bank table with 1–2 trusted bankers per hall; each has a **banker** login (role `BANKER`, created in section 6, always one hall — the only API it can call is this one), and admins of the hall can do the same. Halls the caller can't open, and their guests, are `404`.
+
+A visit pays out **every** `DONE` quest of the guest at once — they all become `PAID` — and the banker hands over the ducats the response shows. Either way in:
+
+- **QR.** The guest's quests page shows a QR code (`GET …/bank/qr`) linking to `bank.html?code=…` on the invitation host (`app.invitation.base-url` with its last path segment swapped for `bank.html`). The banker scans it with their phone camera, signed in on that phone; the page calls `POST /api/bank/payouts`. The code names the guest, is HMAC-signed and expires after 15 minutes — it gives no access to the guest's pages.
+- **PIN.** The banker types their own 4-digit PIN (set with `PUT /api/bank/pin`) on the guest's phone → `POST …/bank/pin`. The PIN says who paid. 5 wrong PINs in a row lock that guest's PIN path for 10 minutes.
+
+Paying is idempotent: a second scan finds nothing left (`coins: 0`). The guest's row is locked while paying, so two bankers can't pay one quest twice; the database backs that up (`uk_quest_payouts_guest_quest`) and only accepts payouts of done quests of the guest's hall (`trg_quest_payouts_insert`).
+
+#### `PayoutResponse`
+
+```json
+{ "guestName": "Jane Doe", "tableLabel": "1D", "hall": "TASHKENT", "coins": 12,
+  "quests": ["Selfie with the groom", "The cake before it's cut"], "collected": 19,
+  "paidBy": "bank_tashkent", "method": "QR", "paidAt": "2026-10-02T15:33:00Z" }
+```
+`coins`: ducats to hand over now — `0` = nothing new (then `quests` is empty, `paidAt` `null`). `collected`: everything the guest has collected, this visit included. `method`: `QR` or `PIN`.
+
+#### Staff routes (admins and the hall's bankers)
+
+| Route | Body | Response |
+|---|---|---|
+| `GET /api/bank?hall=` | — | `BankBoardResponse` (below) |
+| `POST /api/bank/payouts` | `{ "code": "-k7hQqd_…" }` | `PayoutResponse`; `400 CODE_INVALID`; `404` for a guest of another hall |
+| `PUT /api/bank/pin` | `{ "pin": "4821" }` (4 digits) | `204`; `409 PIN_TAKEN` |
+
+```json
+{ "hall": "TASHKENT", "pinSet": true, "paidOut": 340, "guestsPaid": 41, "outstanding": 55, "guestsWaiting": 9,
+  "recent": [ { "id": "b7c2…", "guestName": "Jane Doe", "tableLabel": "1D", "quests": ["Selfie with the groom"],
+                "coins": 7, "paidBy": "bank_tashkent", "method": "QR", "paidAt": "2026-10-02T15:33:00Z" } ] }
+```
+`pinSet`: whether the caller has a PIN. `paidOut`/`guestsPaid`: ducats handed out in the hall so far, and to how many guests; `outstanding`/`guestsWaiting`: ducats for done quests not collected yet. `recent`: the latest visits, newest first.
+
+```bash
+curl -X POST http://localhost:8080/api/bank/payouts \
+  -H "Authorization: Bearer $BANKER_TOKEN" -H "Content-Type: application/json" -d '{"code":"-k7hQqd_…"}'
+```
+
+#### `GET /api/public/invitations/{slug}/bank/qr`
+
+The QR code as `image/svg+xml` (`Cache-Control: no-store`), with a fresh payout code each time. The page reloads it every few minutes while there's something to collect.
+
+#### `POST /api/public/invitations/{slug}/bank/pin`
+
+```json
+{ "pin": "4821" }
+```
+**Response `200`:** a `PayoutResponse`. `400 WRONG_PIN`, `429 PIN_LOCKED` (see "Bank errors"); `400` validation error if it isn't 4 digits.
+
+---
+
 ## Quick reference — all routes
 
 | Method | Path | Auth |
@@ -873,6 +1127,27 @@ Streams the photo's bytes with its real `Content-Type` (e.g. `image/jpeg`) — t
 | POST | `/api/imports` | admin |
 | GET | `/api/imports` | admin |
 | GET | `/api/imports/{id}` | admin |
+| GET | `/api/quests?hall=` | admin |
+| POST | `/api/quests?hall=` | admin |
+| PUT | `/api/quests/{id}` | admin |
+| DELETE | `/api/quests/{id}` | admin |
+| GET | `/api/bets?hall=` | admin |
+| POST | `/api/bets?hall=` | admin |
+| PUT | `/api/bets/{id}` | admin |
+| PATCH | `/api/bets/{id}/status` | admin |
+| PATCH | `/api/bets/{id}/settle` | admin |
+| DELETE | `/api/bets/{id}` | admin |
+| GET | `/api/bets/leaderboard?hall=` | admin |
+| GET | `/api/playlist/songs?hall=` | admin or DJ |
+| POST | `/api/playlist/songs?hall=` | admin or DJ |
+| PUT | `/api/playlist/songs/{id}` | admin or DJ |
+| DELETE | `/api/playlist/songs/{id}` | admin or DJ |
+| GET | `/api/playlist/board?hall=` | admin or DJ |
+| PATCH | `/api/playlist/orders/{id}/status` | admin or DJ |
+| PUT | `/api/playlist/settings?hall=` | admin or DJ |
+| GET | `/api/bank?hall=` | admin or banker |
+| POST | `/api/bank/payouts` | admin or banker |
+| PUT | `/api/bank/pin` | admin or banker |
 | GET | `/api/super-admin/admins` | super admin |
 | POST | `/api/super-admin/admins` | super admin |
 | PATCH | `/api/super-admin/admins/{id}/active` | super admin |
@@ -893,6 +1168,16 @@ Streams the photo's bytes with its real `Content-Type` (e.g. `image/jpeg`) — t
 | DELETE | `/api/public/invitations/{slug}/media/uploads/{uploadId}` | none |
 | PATCH | `/api/public/invitations/{slug}/media/{mediaId}` | none |
 | DELETE | `/api/public/invitations/{slug}/media/{mediaId}` | none |
+| GET | `/api/public/invitations/{slug}/quests` | none |
+| GET | `/api/public/invitations/{slug}/bank/qr` | none |
+| POST | `/api/public/invitations/{slug}/bank/pin` | none |
+| GET | `/api/public/invitations/{slug}/bets` | none |
+| PUT | `/api/public/invitations/{slug}/bets/{betId}/vote` | none |
+| GET | `/api/public/invitations/{slug}/playlist` | none |
+| PUT | `/api/public/invitations/{slug}/playlist/songs/{songId}/like` | none |
+| DELETE | `/api/public/invitations/{slug}/playlist/songs/{songId}/like` | none |
+| POST | `/api/public/invitations/{slug}/playlist/orders` | none |
+| DELETE | `/api/public/invitations/{slug}/playlist/orders/{orderId}` | none |
 | GET | `/api/public/media/{mediaId}/{variant}` | signed link |
 | GET | `/api/public/gallery-images` | none |
 | GET | `/api/public/gallery-images/{id}/file` | none |

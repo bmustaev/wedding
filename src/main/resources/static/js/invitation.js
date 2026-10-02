@@ -13,6 +13,8 @@ import {
   mapQueryFor, defaultGreetingFor, seatMembersText,
   remainingMediaText, documentTitleFor,
 } from './i18n.js';
+import { setGuestLanguage } from './guest-i18n.js';
+import { initGuestNav } from './guest-nav.js';
 
 const pathMatch = location.pathname.match(/^\/i\/([^/]+)\/?$/);
 const slug = new URLSearchParams(location.search).get('slug')
@@ -57,6 +59,8 @@ async function init() {
     currentHall = invitation.hall in EVENT_DATES ? invitation.hall : 'TASHKENT';
     applyLanguage(invitation.language);
     renderInvitation(invitation);
+    setGuestLanguage(invitation.language);
+    initGuestNav(slug, 'invitation');
     loadingEl.hidden = true;
     contentEl.hidden = false;
     // Started only now that the hall (and so the date) is known.

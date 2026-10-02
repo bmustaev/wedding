@@ -17,6 +17,8 @@ import { escapeHtml } from './ui.js';
 import { normalizeLanguage, applyStaticTranslations } from './i18n.js';
 import { createUploader, formatBytes } from './uploader.js';
 import { setMediaLanguage, mt, applyMediaTranslations, formatEta, uploadErrorText } from './media-i18n.js';
+import { setGuestLanguage } from './guest-i18n.js';
+import { initGuestNav } from './guest-nav.js';
 
 /** Mirrors app.media.max-video-seconds — the server enforces it either way. */
 const MAX_VIDEO_SECONDS = 60;
@@ -90,7 +92,8 @@ async function init() {
     setMediaLanguage(invitation.language);
     applyStaticTranslations(normalizeLanguage(invitation.language), invitation.hall);
     applyMediaTranslations();
-    document.getElementById('back-link').href = `/i/${encodeURIComponent(slug)}`;
+    setGuestLanguage(invitation.language);
+    initGuestNav(slug, 'media');
 
     ownMedia = await api.listPublicMedia(slug);
     // The server knows the real ceiling; remaining + already used = max.

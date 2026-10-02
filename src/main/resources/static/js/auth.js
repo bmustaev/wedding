@@ -50,12 +50,30 @@ export function isSuperAdmin() {
   return getRole() === 'SUPER_ADMIN';
 }
 
+/** A DJ login: one hall's playlist (dj.html) and nothing else. */
+export function isDj() {
+  return getRole() === 'DJ';
+}
+
+/** A banker login: one hall's bank table (bank.html) and nothing else. */
+export function isBanker() {
+  return getRole() === 'BANKER';
+}
+
+/** Where a signed-in user lands: a DJ on their playlist, a banker at the bank, everyone else on the guest list. */
+export function homePage() {
+  if (isDj()) return 'dj.html';
+  if (isBanker()) return 'bank.html';
+  return 'dashboard.html';
+}
+
 // Which sides have tables and guests in each hall — mirrors Hall.java.
 // Samarkand is the groom side's alone; the bride side never sees it.
 export const HALL_SIDES = { TASHKENT: ['BRIDE', 'GROOM'], SAMARKAND: ['GROOM'] };
 
-/** Halls this admin can open, invite guests to and seat guests in (super admin: all of them; hall admin: just theirs). */
+/** Halls this admin can open, invite guests to and seat guests in (super admin: all of them; hall admin, DJ and banker: just theirs). */
 export function getAccessibleHalls() {
+  if (isDj() || isBanker()) return getHall() ? [getHall()] : [];
   return Object.keys(HALL_SIDES).filter((hall) => isSuperAdmin()
     || (HALL_SIDES[hall].includes(getSide()) && (!getHall() || getHall() === hall)));
 }
@@ -71,16 +89,59 @@ export function logout() {
 
 /** Call at the top of any admin-only page. Redirects to login if not authenticated
  *  or if the session is malformed (e.g. a regular admin somehow missing a side —
- *  should never happen post-fix, but fail safe rather than silently misbehave). */
+ *  should never happen post-fix, but fail safe rather than silently misbehave).
+ *  A DJ or banker is sent to their own page — every other admin page is off limits to them. */
 export function requireAuth() {
   if (!isLoggedIn()) {
     location.href = 'login.html';
+    return;
+  }
+  if (isDj() || isBanker()) {
+    location.href = homePage();
     return;
   }
   if (!isSuperAdmin() && !getSide()) {
     clearSession();
     location.href = 'login.html';
   }
+}
+
+/** Call at the top of dj.html: admins and DJs (a DJ always has a hall). A banker goes to the bank. */
+export function requireStaff() {
+  if (!isLoggedIn()) {
+    location.href = 'login.html';
+    return;
+  }
+  if (isBanker()) {
+    location.href = 'bank.html';
+    return;
+  }
+  if (isDj() ? !getHall() : !isSuperAdmin() && !getSide()) {
+    clearSession();
+    location.href = 'login.html';
+  }
+}
+
+/**
+ * Call at the top of bank.html: admins and bankers (a banker always has a
+ * hall). Not signed in: off to login, which comes back here afterwards —
+ * a banker may arrive straight from scanning a guest's QR code.
+ */
+export function requireBankStaff() {
+  if (!isLoggedIn()) {
+    location.href = 'login.html?next=bank.html';
+    return false;
+  }
+  if (isDj()) {
+    location.href = 'dj.html';
+    return false;
+  }
+  if (isBanker() ? !getHall() : !isSuperAdmin() && !getSide()) {
+    clearSession();
+    location.href = 'login.html?next=bank.html';
+    return false;
+  }
+  return true;
 }
 
 /** Call at the top of super-admin.html. Redirects a non-super-admin back to their own dashboard. */

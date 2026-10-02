@@ -67,7 +67,12 @@ public class SecurityConfig {
                 // as the block above; must be public since guests aren't logged in.
                 .requestMatchers("/i/**").permitAll()
                 .requestMatchers("/api/super-admin/**").hasRole("SUPER_ADMIN")
-                .anyRequest().authenticated()
+                // A DJ login works one hall's playlist and nothing else —
+                // every other API (guests, seating, media, …) is admins only.
+                .requestMatchers("/api/playlist/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "DJ")
+                // Likewise a banker: one hall's bank table (quest payouts).
+                .requestMatchers("/api/bank/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "BANKER")
+                .anyRequest().hasAnyRole("SUPER_ADMIN", "ADMIN")
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
             // Without this, Spring Security's default for a request with no

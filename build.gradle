@@ -35,6 +35,9 @@ dependencies {
     implementation "io.jsonwebtoken:jjwt-api:${jjwtVersion}"
     runtimeOnly "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
     runtimeOnly "io.jsonwebtoken:jjwt-gson:${jjwtVersion}"
+    // QR codes on the guest's quests page (BankService) — rendered server-side
+    // as SVG, so the frontend stays free of third-party scripts.
+    implementation 'com.google.zxing:core:3.5.3'
 	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-restclient-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'

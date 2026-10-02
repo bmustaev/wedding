@@ -67,6 +67,13 @@ public class GlobalExceptionHandler {
                 .body(ApiErrorResponse.of(ex.getStatus().value(), ex.getCode(), ex.getMessage()));
     }
 
+    /** Likewise: `error` is WRONG_PIN, PIN_LOCKED, … (see BankRejectedException). */
+    @ExceptionHandler(BankRejectedException.class)
+    public ResponseEntity<ApiErrorResponse> handleBankRejected(BankRejectedException ex) {
+        return ResponseEntity.status(ex.getStatus())
+                .body(ApiErrorResponse.of(ex.getStatus().value(), ex.getCode(), ex.getMessage()));
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
         // Safety net: a database trigger or CHECK constraint rejected the write

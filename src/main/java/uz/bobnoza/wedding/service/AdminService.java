@@ -18,7 +18,7 @@ import org.springframework.http.HttpStatus;
 import java.util.List;
 import java.util.UUID;
 
-/** Super-admin-only operations: managing admin accounts. */
+/** Super-admin-only operations: managing admin (and DJ / banker) accounts. */
 @Service
 public class AdminService {
 
@@ -46,21 +46,22 @@ public class AdminService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username is already taken");
         }
 
-        AdminSide side;
-        try {
-            side = AdminSide.valueOf(request.side().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "side must be BRIDE or GROOM");
-        }
-
-        Hall hall = null;
-        if (request.hall() != null && !request.hall().isBlank()) {
-            try {
-                hall = Hall.valueOf(request.hall().strip().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "hall must be TASHKENT or SAMARKAND");
+        AdminRole role = request.role() == null ? AdminRole.ADMIN : AdminRole.valueOf(request.role());
+        Hall hall = parseHall(request.hall());
+        AdminSide side = null;
+        if (role == AdminRole.DJ || role == AdminRole.BANKER) {
+            // A DJ or a banker belongs to a hall, not a side (ck_admins_dj_hall, ck_admins_banker_hall).
+            if (hall == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "A " + (role == AdminRole.DJ ? "DJ" : "banker") + " needs a hall: TASHKENT or SAMARKAND");
             }
-            if (!hall.isOpenTo(side)) {
+        } else {
+            try {
+                side = AdminSide.valueOf(String.valueOf(request.side()).strip().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "side must be BRIDE or GROOM");
+            }
+            if (hall != null && !hall.isOpenTo(side)) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "The " + hall.name() + " hall has no " + side.name() + " side");
             }
@@ -72,7 +73,7 @@ public class AdminService {
         Admin admin = Admin.builder()
                 .username(request.username())
                 .passwordHash(passwordEncoder.encode(request.password()))
-                .role(AdminRole.ADMIN)
+                .role(role)
                 .side(side)
                 .hall(hall)
                 .active(true)
@@ -88,6 +89,17 @@ public class AdminService {
                 .orElseThrow(() -> new ResourceNotFoundException("Admin not found: " + adminId));
         admin.setActive(active);
         return toSummary(adminRepository.save(admin));
+    }
+
+    private static Hall parseHall(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Hall.valueOf(value.strip().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "hall must be TASHKENT or SAMARKAND");
+        }
     }
 
     private AdminSummaryResponse toSummary(Admin admin) {

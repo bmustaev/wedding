@@ -9,28 +9,8 @@
 </head>
 <body data-i18n-title="super-admin-doc-title">
   <div class="app-shell">
-    <aside class="sidebar">
-      <div class="lang-toggle-row" style="display:flex; justify-content:flex-end; margin-bottom:0.75rem;">
-        <div class="lang-toggle" id="lang-switcher">
-          <button type="button" data-lang="en">EN</button>
-          <button type="button" data-lang="ru">RU</button>
-        </div>
-      </div>
-      <div class="sidebar-brand" data-i18n="app-brand">Wedding Admin</div>
-      <div class="sidebar-role" data-i18n="sidebar-role-super">Super admin</div>
-
-      <nav class="sidebar-nav">
-        <button type="button" id="nav-back" data-i18n="nav-back-to-dashboard">&larr; Back to my dashboard</button>
-        <button type="button" data-target="admins" class="active" data-i18n="nav-admins">Admins</button>
-        <button type="button" data-target="gallery" data-i18n="nav-gallery">Gallery</button>
-        <button type="button" id="nav-media" data-i18n="nav-media">Media</button>
-      </nav>
-
-      <div class="sidebar-footer">
-        <div class="field-hint" id="sidebar-username" style="margin-bottom:0.6em;"></div>
-        <button type="button" class="btn btn-sm" id="logout-btn" data-i18n="sign-out">Sign out</button>
-      </div>
-    </aside>
+    <!-- Filled in by js/nav.js — one menu for every admin page. -->
+    <aside class="sidebar"></aside>
 
     <main class="content">
       <!-- ============================= ADMIN LIST ============================= -->
@@ -100,6 +80,14 @@
           <input type="text" id="admin-username" minlength="3" maxlength="64" required />
         </div>
         <div class="field">
+          <label for="admin-role" data-i18n="admin-role-label">Account</label>
+          <select id="admin-role">
+            <option value="ADMIN" data-i18n="admin-role-ADMIN">Admin — guests, seating, content</option>
+            <option value="DJ" data-i18n="admin-role-DJ">DJ — one hall’s playlist only</option>
+            <option value="BANKER" data-i18n="admin-role-BANKER">Banker — one hall’s bank table only</option>
+          </select>
+        </div>
+        <div class="field" id="admin-side-field">
           <label for="admin-side" data-i18n="admin-side-label">Side</label>
           <select id="admin-side" required>
             <option value="BRIDE" data-i18n="side-bride">Bride</option>
@@ -113,7 +101,7 @@
             <option value="TASHKENT" data-i18n="admin-hall-only-TASHKENT">Tashkent only</option>
             <option value="SAMARKAND" data-i18n="admin-hall-only-SAMARKAND">Samarkand only</option>
           </select>
-          <p class="field-hint" data-i18n="admin-hall-hint">A one-hall admin sees only that hall, and manages every guest their side has there — not just the ones they added.</p>
+          <p class="field-hint" id="admin-hall-hint" data-i18n="admin-hall-hint">A one-hall admin sees only that hall, and manages every guest their side has there — not just the ones they added.</p>
         </div>
         <div class="field">
           <label for="admin-password" data-i18n="admin-password-label">Password</label>

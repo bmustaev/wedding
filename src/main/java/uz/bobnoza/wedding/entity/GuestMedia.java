@@ -22,7 +22,8 @@ import java.util.UUID;
  * {@link #thumbKey} are the browser-safe copies MediaProcessor makes from it
  * (photo: JPEG + JPEG thumbnail, video: H.264 MP4 + JPEG poster), set once
  * {@link #processingStatus} is READY. {@link #visibility} decides whether
- * other guests in the hall see it (admins always do).
+ * other guests in the hall see it (admins always do). A photo with a
+ * {@link #quest} is the guest's answer to that photo challenge.
  */
 @Entity
 @Table(name = "guest_media")
@@ -78,6 +79,11 @@ public class GuestMedia {
 
     @Column(name = "processing_error")
     private String processingError;
+
+    /** Set when this photo completes a quest; null for every other upload. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "quest_id")
+    private Quest quest;
 
     @Column(name = "uploaded_at", nullable = false)
     private Instant uploadedAt = Instant.now();
@@ -247,6 +253,14 @@ public class GuestMedia {
         this.processingError = processingError;
     }
 
+    public Quest getQuest() {
+        return quest;
+    }
+
+    public void setQuest(Quest quest) {
+        this.quest = quest;
+    }
+
     public Instant getUploadedAt() {
         return uploadedAt;
     }
@@ -296,6 +310,7 @@ public class GuestMedia {
         private Integer durationSeconds;
         private ModerationStatus moderationStatus = ModerationStatus.APPROVED;
         private MediaVisibility visibility = MediaVisibility.PUBLIC;
+        private Quest quest;
         private Instant uploadedAt = Instant.now();
         private Instant createdAt;
         private Instant updatedAt;
@@ -312,13 +327,16 @@ public class GuestMedia {
         public Builder durationSeconds(Integer durationSeconds) { this.durationSeconds = durationSeconds; return this; }
         public Builder moderationStatus(ModerationStatus moderationStatus) { this.moderationStatus = moderationStatus; return this; }
         public Builder visibility(MediaVisibility visibility) { this.visibility = visibility; return this; }
+        public Builder quest(Quest quest) { this.quest = quest; return this; }
         public Builder uploadedAt(Instant uploadedAt) { this.uploadedAt = uploadedAt; return this; }
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
 
         public GuestMedia build() {
-            return new GuestMedia(id, guest, mediaType, storageKey, originalFilename, mimeType, sizeBytes,
+            GuestMedia media = new GuestMedia(id, guest, mediaType, storageKey, originalFilename, mimeType, sizeBytes,
                     widthPx, heightPx, durationSeconds, moderationStatus, visibility, uploadedAt, createdAt, updatedAt);
+            media.setQuest(quest);
+            return media;
         }
     }
 }

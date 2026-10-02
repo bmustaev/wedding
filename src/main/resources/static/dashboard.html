@@ -9,29 +9,8 @@
 </head>
 <body data-i18n-title="dashboard-doc-title">
   <div class="app-shell">
-    <aside class="sidebar">
-      <div class="lang-toggle-row" style="display:flex; justify-content:flex-end; margin-bottom:0.75rem;">
-        <div class="lang-toggle" id="lang-switcher">
-          <button type="button" data-lang="en">EN</button>
-          <button type="button" data-lang="ru">RU</button>
-        </div>
-      </div>
-      <div class="sidebar-brand" data-i18n="app-brand">Wedding Admin</div>
-      <div class="sidebar-role" id="sidebar-role">—</div>
-
-      <nav class="sidebar-nav">
-        <button type="button" data-target="guests" class="active" data-i18n="nav-guests">Guests</button>
-        <button type="button" id="nav-hall" data-i18n="nav-hall">Hall</button>
-        <button type="button" data-target="import" data-i18n="nav-import">Import</button>
-        <button type="button" id="nav-media" data-i18n="nav-media">Media</button>
-        <button type="button" id="nav-super-admin" hidden data-i18n="nav-admins">Admins</button>
-      </nav>
-
-      <div class="sidebar-footer">
-        <div class="field-hint" id="sidebar-username" style="margin-bottom:0.6em;"></div>
-        <button type="button" class="btn btn-sm" id="logout-btn" data-i18n="sign-out">Sign out</button>
-      </div>
-    </aside>
+    <!-- Filled in by js/nav.js — one menu for every admin page. -->
+    <aside class="sidebar"></aside>
 
     <main class="content">
       <!-- ============================= GUESTS ============================= -->
